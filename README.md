@@ -3,4 +3,4 @@ This repo contains all the data processing scripts to transform the raw events o
 
 
 - Shadowspect's event model is accessible [in this link](https://docs.google.com/document/d/1lNQpNpHXyaSKlwq2lJzYX9oow8EEg-_EbSry8z4Ljw0/edit)
-- The interface to access metric scripts for Shadowspect is accessible [in this link](https://docs.google.com/document/d/1ruENYhgBt4Wh9VLOv7vzOrxN5IBdJ6rcdopmvzSKiv8)  
+- The interface that explains each function and metric, its arguments and output data format for Shadowspect is accessible [in this link](https://docs.google.com/document/d/1ruENYhgBt4Wh9VLOv7vzOrxN5IBdJ6rcdopmvzSKiv8)  
