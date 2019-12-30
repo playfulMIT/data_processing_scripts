@@ -1,5 +1,4 @@
 import pandas as pd
-from datetime import datetime
 import numpy as np
 import json
 
@@ -17,6 +16,10 @@ def computeLevelsOfActivity(dataEvents, group = 'all'):
     # removing those rows where we dont have a group and a user that is not guest
     dataEvents = dataEvents[((dataEvents['group'] != '') & (dataEvents['user'] != '') & (dataEvents['user'] != 'guest'))]
     dataEvents['group_user_id'] = dataEvents['group'] + '~' + dataEvents['user']
+
+    # filtering to process only the list of groups passed as argument
+    if(group != 'all'):
+        dataEvents = dataEvents[dataEvents['group'].isin(group)]
     
     activity_by_user = dataEvents.groupby(['group_user_id', 'group', 'user']).agg({'id':'count',
                                              'type':'nunique'}).reset_index().rename(columns={'id':'n_events',
