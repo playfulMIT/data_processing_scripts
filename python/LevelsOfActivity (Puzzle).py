@@ -103,7 +103,8 @@ def computeLevelsOfActivity2(dataEvents, group = 'all'):
                     eventsDiff_puzzle[user_puzzle_key].append(event['type'])
                     
             # the event is not final event
-            if(event['type'] not in ['ws-exit_to_menu', 'ws-puzzle_complete', 'ws-create_user']): 
+            if(event['type'] not in ['ws-exit_to_menu', 'ws-puzzle_complete', 'ws-create_user', 'ws-login_user']): 
+                                                       
                     puzzleEvents[user_puzzle_key] += 1
                                                                                               
                     #add the event type                                                                          
