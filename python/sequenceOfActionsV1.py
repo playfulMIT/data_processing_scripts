@@ -65,9 +65,8 @@ def sequenceOfActions(dataEvents, group = 'all'):
         for sequence in userPuzzleDict[key].keys():
             # Getting session_id and sequence number by split.
                 key_split = sequence.split('~')
-                if ('Sandbox' not in userPuzzleDict[key][sequence].keys()):
-                    # user, session_id, sequence number, {task_id : funnel}
-                    userSessionList.append([key, key_split[1], key_split[0], userPuzzleDict[key][sequence]])
+                # user, session_id, sequence number, {task_id : funnel}
+                userSessionList.append([key, key_split[1], key_split[0], userPuzzleDict[key][sequence]])
 
     userSequence = pd.DataFrame(userSessionList, columns=['user', 'session_id', 'sequence', 'task_id'])
     
