@@ -13,6 +13,8 @@ from collections import OrderedDict
 # dataEvents = pd.read_csv('/Users/manuelgomezmoratilla/Desktop/data_processing_scripts/data/anonymized_dataset.csv', sep=";")
 # metrics = levelsOfDifficulty(dataEvents, group = 'all')
 
+pd.options.mode.chained_assignment = None  # default='warn'
+    
 listActionEvents = ['ws-move_shape', 'ws-rotate_shape', 'ws-scale_shape', 
                     'ws-check_solution', 'ws-undo_action', 'ws-redo_action',
                     'ws-rotate_view', 'ws-snapshot', 'ws-mode_change',
@@ -31,13 +33,13 @@ typeMapping = {'Sandbox': 'SAND', '1. One Box': 'Tutorial', '2. Separated Boxes'
 def levelsOfDifficulty(dataEvents, group = 'all'):    
     
     dataEvents['group'] = [json.loads(x)['group'] if 'group' in json.loads(x).keys() else '' for x in dataEvents['data']]
+    dataEvents['user'] = [json.loads(x)['user'] if 'user' in json.loads(x).keys() else '' for x in dataEvents['data']]
+    # removing those rows where we dont have a group and a user that is not guest
+    dataEvents = dataEvents[((dataEvents['group'] != '') & (dataEvents['user'] != '') & (dataEvents['user'] != 'guest'))]
+    dataEvents['group_user_id'] = dataEvents['group'] + '~' + dataEvents['user']
     # filtering to only take the group passed as argument
     if(group != 'all'):
         dataEvents = dataEvents[dataEvents['group'].isin(group)]
-    
-    all_data_by_user = dataEvents.groupby(['session_id']).agg({'id':'count',
-                                                         'type':'nunique'}).reset_index().rename(columns={'id':'n_events',
-                                                                                                          'type':'n_different_events'})
 
     # Data Cleaning
     dataEvents['time'] = pd.to_datetime(dataEvents['time'])
@@ -48,9 +50,9 @@ def levelsOfDifficulty(dataEvents, group = 'all'):
     userPuzzleDict = {}
     theresHoldActivity = 60
     
-    for user in all_data_by_user['session_id'].unique():
+    for user in dataEvents['group_user_id'].unique():
         #Select rows
-        user_events = dataEvents[dataEvents['session_id'] == user]
+        user_events = dataEvents[dataEvents['group_user_id'] == user]
         userPuzzleDict[user] = {}
         # Analyze when a puzzle has been started
         activePuzzle = None
@@ -121,7 +123,9 @@ def levelsOfDifficulty(dataEvents, group = 'all'):
     stats_by_level_player = []
     for user in userPuzzleDict.keys():
         userDf = pd.DataFrame.from_dict(userPuzzleDict[user], orient = 'index')
-        userDf['session_id'] = user
+        userDf['group_user_id'] = user
+        key_split = user.split('~')
+        userDf['group'] = key_split[1]
         if (userDf.shape != 0):
             stats_by_level_player.append(userDf)
         else: 
@@ -136,14 +140,14 @@ def levelsOfDifficulty(dataEvents, group = 'all'):
         stats_by_level_player['p_incorrect'] = 100-100*(stats_by_level_player['completed']/stats_by_level_player['n_attempts'])
         stats_by_level_player['n_abandoned'] = 1 - stats_by_level_player['completed']
 
-        stats_by_level = round(stats_by_level_player.groupby(['puzzle', 'order', 'level_type']).agg({'active_time': 'mean',
+        stats_by_level = round(stats_by_level_player.groupby(['puzzle', 'order', 'level_type', 'group']).agg({'active_time': 'mean',
                                                     'n_attempts': 'mean',
                                                     'n_actions': 'mean',
                                                     'p_incorrect': 'mean',
                                                     'completed': 'sum',
-                                                    'session_id':'count',
+                                                    'group_user_id':'count',
                                                     'n_abandoned': 'sum'}).reset_index(),2).sort_values('order').rename(columns = {'completed': 'n_completed',
-                                                                                                                                   'session_id': 'n_started', 'puzzle': 'task_id'})
+                                                                                                                                   'group_user_id': 'n_started', 'puzzle': 'task_id'})
         stats_by_level['p_abandoned'] = round(100*stats_by_level['n_abandoned']/stats_by_level['n_started'],2)
         #Amount of time / #puzzles completed
         stats_by_level['completed_time'] = round(stats_by_level['active_time']/stats_by_level['n_completed'],4)
@@ -166,12 +170,10 @@ def levelsOfDifficulty(dataEvents, group = 'all'):
         #Normalize between 0 and 1
         stats_by_level['norm_all_measures'] = (stats_by_level['z_all_measures']-stats_by_level['z_all_measures'].min())/(stats_by_level['z_all_measures'].max()-stats_by_level['z_all_measures'].min())
 
-        difficulty_metrics = pd.DataFrame(stats_by_level, columns = ['task_id','order','completed_time', 'actions_completed', 'p_incorrect', 'p_abandoned', 'norm_all_measures'])
+        difficulty_metrics = pd.DataFrame(stats_by_level, columns = ['group','task_id','order','completed_time', 'actions_completed', 'p_incorrect', 'p_abandoned', 'norm_all_measures'])
         return difficulty_metrics
     except ValueError:
         return -1
-
-
-
+    
 
 
