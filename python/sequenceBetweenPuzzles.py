@@ -11,11 +11,11 @@ from collections import OrderedDict
 
 # USAGE EXAMPLE
 # dataEvents = pd.read_csv('/Users/manuelgomezmoratilla/Desktop/TFG/data_processing_scripts/data/anonamyze_all_data_collection.csv', sep=";")
-# sequence = sequenceWithinPuzzles(dataEvents, group = 'all')
+# sequence = sequenceBetweenPuzzles(dataEvents, group = 'all')
 
 pd.options.mode.chained_assignment = None  # default='warn'
 
-def sequenceWithinPuzzles(dataEvents, group = 'all'): 
+def sequenceBetweenPuzzles(dataEvents, group = 'all'): 
     
     dataEvents['group'] = [json.loads(x)['group'] if 'group' in json.loads(x).keys() else '' for x in dataEvents['data']]
     dataEvents['user'] = [json.loads(x)['user'] if 'user' in json.loads(x).keys() else '' for x in dataEvents['data']]
