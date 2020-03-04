@@ -25,9 +25,9 @@ orderMapping = {'Sandbox': np.nan, '1. One Box': 1, '2. Separated Boxes': 2, '3.
                 'Sugar Cones': 19,'Stranger Shapes': 20, 'Tall and Small': 21, 'Ramp Up and Can It': 22, 'More Than Meets Your Eye': 23, 'Not Bird': 24, 'Unnecesary': 25, 'Zzz': 26, 'Bull Market': 27, 'Few Clues': 28, 'Orange Dance': 29, 'Bear Market': 30}
 
 # mapping to positions
-typeMapping = {'Sandbox': 'SAND', '1. One Box': 'Tutorial', '2. Separated Boxes': 'Tutorial', '3. Rotate a Pyramid': 'Tutorial', '4. Match Silhouettes': 'Tutorial', '5. Removing Objects': 'Tutorial', '6. Stretch a Ramp': 'Tutorial', '7. Max 2 Boxes': 'Tutorial', '8. Combine 2 Ramps': 'Tutorial', '9. Scaling Round Objects': 'Tutorial', 
-               'Square Cross-Sections': 'Easy Puzzles', 'Bird Fez': 'Easy Puzzles', 'Pi Henge': 'Easy Puzzles', '45-Degree Rotations': 'Easy Puzzles',  'Pyramids are Strange': 'Easy Puzzles', 'Boxes Obscure Spheres': 'Easy Puzzles', 'Object Limits': 'Easy Puzzles', 'Not Bird': 'Easy Puzzles', 'Angled Silhouette': 'Easy Puzzles',
-               'Warm Up': 'Hard Puzzles', 'Stranger Shapes': 'Hard Puzzles', 'Sugar Cones': 'Hard Puzzles', 'Tall and Small': 'Hard Puzzles', 'Ramp Up and Can It': 'Hard Puzzles', 'More Than Meets Your Eye': 'Hard Puzzles', 'Unnecessary': 'Hard Puzzles', 'Zzz': 'Hard Puzzles', 'Bull Market': 'Hard Puzzles', 'Few Clues': 'Hard Puzzles', 'Orange Dance': 'Hard Puzzles', 'Bear Market': 'Hard Puzzles'}
+typeMapping = {'Sandbox': 'SAND', '1. One Box': 'Basic Puzzles', '2. Separated Boxes': 'Basic Puzzles', '3. Rotate a Pyramid': 'Basic Puzzles', '4. Match Silhouettes': 'Basic Puzzles', '5. Removing Objects': 'Basic Puzzles', '6. Stretch a Ramp': 'Basic Puzzles', '7. Max 2 Boxes': 'Basic Puzzles', '8. Combine 2 Ramps': 'Basic Puzzles', '9. Scaling Round Objects': 'Basic Puzzles', 
+               'Square Cross-Sections': 'Intermediate Puzzles', 'Bird Fez': 'Intermediate Puzzles', 'Pi Henge': 'Intermediate Puzzles', '45-Degree Rotations': 'Intermediate Puzzles',  'Pyramids are Strange': 'Intermediate Puzzles', 'Boxes Obscure Spheres': 'Intermediate Puzzles', 'Object Limits': 'Intermediate Puzzles', 'Tetromino': 'Intermediate Puzzles', 'Angled Silhouette': 'Intermediate Puzzles',
+               'Sugar Cones': 'Advanced Puzzles', 'Stranger Shapes': 'Advanced Puzzles', 'Tall and Small': 'Advanced Puzzles', 'Ramp Up and Can It': 'Advanced Puzzles', 'More Than Meets Your Eye': 'Advanced Puzzles', 'Not Bird': 'Advanced Puzzles', 'Unnecessary': 'Advanced Puzzles', 'Zzz': 'Advanced Puzzles', 'Bull Market': 'Advanced Puzzles', 'Few Clues': 'Advanced Puzzles', 'Orange Dance': 'Advanced Puzzles', 'Bear Market': 'Advanced Puzzles'}
 
     
 def levelsOfDifficulty(dataEvents, group = 'all'):    
@@ -125,7 +125,7 @@ def levelsOfDifficulty(dataEvents, group = 'all'):
         userDf = pd.DataFrame.from_dict(userPuzzleDict[user], orient = 'index')
         userDf['group_user_id'] = user
         key_split = user.split('~')
-        userDf['group'] = key_split[1]
+        userDf['group'] = key_split[0] 
         if (userDf.shape != 0):
             stats_by_level_player.append(userDf)
         else: 
@@ -174,6 +174,5 @@ def levelsOfDifficulty(dataEvents, group = 'all'):
         return difficulty_metrics
     except ValueError:
         return -1
-    
 
 
