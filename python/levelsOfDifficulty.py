@@ -13,6 +13,7 @@ from collections import OrderedDict
 # dataEvents = pd.read_csv('/Users/manuelgomezmoratilla/Desktop/data_processing_scripts/data/anonymized_dataset.csv', sep=";")
 # metrics = levelsOfDifficulty(dataEvents, group = 'all')
 
+
 pd.options.mode.chained_assignment = None  # default='warn'
     
 listActionEvents = ['ws-move_shape', 'ws-rotate_shape', 'ws-scale_shape', 
@@ -20,14 +21,14 @@ listActionEvents = ['ws-move_shape', 'ws-rotate_shape', 'ws-scale_shape',
                     'ws-rotate_view', 'ws-snapshot', 'ws-mode_change',
                     'ws-create_shape', 'ws-select_shape', 'ws-delete_shape', 'ws-select_shape_add']
 
-orderMapping = {'Sandbox': np.nan, '1. One Box': 1, '2. Separated Boxes': 2, '3. Rotate a Pyramid': 3, '4. Match Silhouettes': 4, '5. Removing Objects': 5, '6. Stretch a Ramp': 6, '7. Max 2 Boxes': 7, '8. Combine 2 Ramps': 8, '9. Scaling Round Objects': 9, 
-                'Square Cross-Sections': 10, 'Bird Fez': 11, 'Pi Henge': 12, '45-Degree Rotations': 13,  'Pyramids are Strange': 14, 'Boxes Obscure Spheres': 15, 'Object Limits': 16, 'Tetromino': 17, 'Angled Silhouette': 18,
+orderMapping = {'1. One Box': 1, '2. Separated Boxes': 2, '3. Rotate a Pyramid': 3, '4. Match Silhouettes': 4, '5. Removing Objects': 5, '6. Stretch a Ramp': 6, '7. Max 2 Boxes': 7, '8. Combine 2 Ramps': 8, '9. Scaling Round Objects': 9, 
+                'Square Cross-Sections': 10, 'Bird Fez': 11, 'Pi Henge': 12, '45-Degree Rotations': 13,  'Pyramids are Strange': 14, 'Boxes Obscure Spheres': 15, 'Object Limits': 16, 'Warm Up': 17, 'Angled Silhouette': 18,
                 'Sugar Cones': 19,'Stranger Shapes': 20, 'Tall and Small': 21, 'Ramp Up and Can It': 22, 'More Than Meets Your Eye': 23, 'Not Bird': 24, 'Unnecesary': 25, 'Zzz': 26, 'Bull Market': 27, 'Few Clues': 28, 'Orange Dance': 29, 'Bear Market': 30}
 
 # mapping to positions
-typeMapping = {'Sandbox': 'SAND', '1. One Box': 'Basic Puzzles', '2. Separated Boxes': 'Basic Puzzles', '3. Rotate a Pyramid': 'Basic Puzzles', '4. Match Silhouettes': 'Basic Puzzles', '5. Removing Objects': 'Basic Puzzles', '6. Stretch a Ramp': 'Basic Puzzles', '7. Max 2 Boxes': 'Basic Puzzles', '8. Combine 2 Ramps': 'Basic Puzzles', '9. Scaling Round Objects': 'Basic Puzzles', 
-               'Square Cross-Sections': 'Intermediate Puzzles', 'Bird Fez': 'Intermediate Puzzles', 'Pi Henge': 'Intermediate Puzzles', '45-Degree Rotations': 'Intermediate Puzzles',  'Pyramids are Strange': 'Intermediate Puzzles', 'Boxes Obscure Spheres': 'Intermediate Puzzles', 'Object Limits': 'Intermediate Puzzles', 'Tetromino': 'Intermediate Puzzles', 'Angled Silhouette': 'Intermediate Puzzles',
-               'Sugar Cones': 'Advanced Puzzles', 'Stranger Shapes': 'Advanced Puzzles', 'Tall and Small': 'Advanced Puzzles', 'Ramp Up and Can It': 'Advanced Puzzles', 'More Than Meets Your Eye': 'Advanced Puzzles', 'Not Bird': 'Advanced Puzzles', 'Unnecessary': 'Advanced Puzzles', 'Zzz': 'Advanced Puzzles', 'Bull Market': 'Advanced Puzzles', 'Few Clues': 'Advanced Puzzles', 'Orange Dance': 'Advanced Puzzles', 'Bear Market': 'Advanced Puzzles'}
+typeMapping = {'1. One Box': 'Basic Puzzles', '2. Separated Boxes': 'Basic Puzzles', '3. Rotate a Pyramid': 'Basic Puzzles', '4. Match Silhouettes': 'Basic Puzzles', '5. Removing Objects': 'Basic Puzzles', '6. Stretch a Ramp': 'Basic Puzzles', '7. Max 2 Boxes': 'Basic Puzzles', '8. Combine 2 Ramps': 'Basic Puzzles', '9. Scaling Round Objects': 'Basic Puzzles', 
+               'Square Cross-Sections': 'Intermediate Puzzles', 'Bird Fez': 'Intermediate Puzzles', 'Pi Henge': 'Intermediate Puzzles', '45-Degree Rotations': 'Intermediate Puzzles',  'Pyramids are Strange': 'Intermediate Puzzles', 'Boxes Obscure Spheres': 'Intermediate Puzzles', 'Object Limits': 'Intermediate Puzzles', 'Angled Silhouette': 'Intermediate Puzzles',
+               'Sugar Cones': 'Advanced Puzzles', 'Stranger Shapes': 'Advanced Puzzles', 'Tall and Small': 'Advanced Puzzles', 'Ramp Up and Can It': 'Advanced Puzzles', 'More Than Meets Your Eye': 'Advanced Puzzles', 'Not Bird': 'Advanced Puzzles', 'Unnecessary': 'Advanced Puzzles', 'Zzz': 'Advanced Puzzles', 'Bull Market': 'Advanced Puzzles', 'Few Clues': 'Advanced Puzzles', 'Orange Dance': 'Advanced Puzzles', 'Bear Market': 'Advanced Puzzles', 'Warm Up': 'Intermediate Puzzles'}
 
     
 def levelsOfDifficulty(dataEvents, group = 'all'):    
@@ -148,31 +149,37 @@ def levelsOfDifficulty(dataEvents, group = 'all'):
                                                     'group_user_id':'count',
                                                     'n_abandoned': 'sum'}).reset_index(),2).sort_values('order').rename(columns = {'completed': 'n_completed',
                                                                                                                                    'group_user_id': 'n_started', 'puzzle': 'task_id'})
-        stats_by_level['p_abandoned'] = round(100*stats_by_level['n_abandoned']/stats_by_level['n_started'],2)
-        #Amount of time / #puzzles completed
-        stats_by_level['completed_time'] = round(stats_by_level['active_time']/stats_by_level['n_completed'],4)
-         #Amount of actions / #puzzles completed
-        stats_by_level['actions_completed'] = round(stats_by_level['n_actions']/stats_by_level['n_completed'],2)
-        #Replace NaNs values with 100%
-        stats_by_level['p_incorrect'].replace(np.nan, 100, inplace=True)
-        #Older metrics
-        #stats_by_level['z_active_time'] = (stats_by_level['active_time'] - stats_by_level['active_time'].mean())/stats_by_level['active_time'].std()
-        #stats_by_level['z_n_actions'] = (stats_by_level['n_actions'] - stats_by_level['n_actions'].mean())/stats_by_level['n_actions'].std()
+        difficulty_metrics = []
+        for group in stats_by_level['group'].unique():
+            new_stats = stats_by_level[stats_by_level['group']== group]
+            new_stats['p_abandoned'] = round(100*new_stats['n_abandoned']/new_stats['n_started'],2)
+            new_stats['completed_time'] = round(new_stats['active_time']/new_stats['n_completed'],4)
+            #Amount of actions / #puzzles completed
+            new_stats['actions_completed'] = round(new_stats['n_actions']/new_stats['n_completed'],2)
+            #Replace NaNs values with 100%
+            new_stats['p_incorrect'].replace(np.nan, 100, inplace=True)
+            #Older metrics
+            #stats_by_level['z_active_time'] = (stats_by_level['active_time'] - stats_by_level['active_time'].mean())/stats_by_level['active_time'].std()
+            #stats_by_level['z_n_actions'] = (stats_by_level['n_actions'] - stats_by_level['n_actions'].mean())/stats_by_level['n_actions'].std()
 
-        #Standardize parameters
-        stats_by_level['z_p_incorrect'] = (stats_by_level['p_incorrect'] - stats_by_level['p_incorrect'].mean())/stats_by_level['p_incorrect'].std()
-        stats_by_level['z_p_abandoned'] = (stats_by_level['p_abandoned'] - stats_by_level['p_abandoned'].mean())/stats_by_level['p_abandoned'].std()
-        stats_by_level['z_actions_completed'] = (stats_by_level['actions_completed'] - stats_by_level['actions_completed'].mean())/stats_by_level['actions_completed'].std()
-        stats_by_level['z_completed_time'] = (stats_by_level['completed_time'] - stats_by_level['completed_time'].mean())/stats_by_level['completed_time'].std()
+            #Standardize parameters
+            new_stats['z_p_incorrect'] = (new_stats['p_incorrect'] - new_stats['p_incorrect'].mean())/new_stats['p_incorrect'].std()
+            new_stats['z_p_abandoned'] = (new_stats['p_abandoned'] - new_stats['p_abandoned'].mean())/new_stats['p_abandoned'].std()
+            new_stats['z_actions_completed'] = (new_stats['actions_completed'] - new_stats['actions_completed'].mean())/new_stats['actions_completed'].std()
+            new_stats['z_completed_time'] = (new_stats['completed_time'] - new_stats['completed_time'].mean())/new_stats['completed_time'].std()
 
-        stats_by_level['z_all_measures'] = stats_by_level[['z_completed_time', 'z_actions_completed', 'z_p_incorrect', 'z_p_abandoned']].sum(axis = 1)
+            new_stats['z_all_measures'] = new_stats[['z_completed_time', 'z_actions_completed', 'z_p_incorrect', 'z_p_abandoned']].sum(axis = 1)
+            #Normalize between 0 and 1
+            new_stats['norm_all_measures'] = (new_stats['z_all_measures']-new_stats['z_all_measures'].min())/(new_stats['z_all_measures'].max()-new_stats['z_all_measures'].min())
 
-        #Normalize between 0 and 1
-        stats_by_level['norm_all_measures'] = (stats_by_level['z_all_measures']-stats_by_level['z_all_measures'].min())/(stats_by_level['z_all_measures'].max()-stats_by_level['z_all_measures'].min())
+            difficulty_metrics.append(pd.DataFrame(new_stats, columns = ['group','task_id','order','completed_time', 'actions_completed', 'p_incorrect', 'p_abandoned', 'norm_all_measures']))
 
-        difficulty_metrics = pd.DataFrame(stats_by_level, columns = ['group','task_id','order','completed_time', 'actions_completed', 'p_incorrect', 'p_abandoned', 'norm_all_measures'])
+        difficulty_metrics = pd.concat(difficulty_metrics)
+        difficulty_metrics.sort_values(['task_id'])
         return difficulty_metrics
     except ValueError:
         return -1
+
+
 
 
