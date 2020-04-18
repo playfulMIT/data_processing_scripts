@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
-
+from datacollection.models import Event, URL, CustomSession
+from django_pandas.io import read_frame
 import pandas as pd
 import numpy as np
 import json
@@ -11,13 +12,26 @@ from datetime import datetime
 from datetime import timedelta
 from collections import OrderedDict
 
-# USAGE EXAMPLE
-# dataEvents = pd.read_csv('/Users/manuelgomezmoratilla/Desktop/data_processing_scripts/data/anonymized_dataset.csv', sep=";")
-# metrics = levelsOfDifficulty(dataEvents, group = 'all')
 
-
+all_data_collection_urls = ['ginnymason', 'chadsalyer', 'kristinknowlton', 'lori day', 'leja', 'leja2', 'debbiepoull', 'juliamorgan']
 pd.options.mode.chained_assignment = None  # default='warn'
-def sequenceWithinPuzzles(dataEvents, group = 'all'):
+
+# USAGE : pruebas = sequenceWithinPuzzles(group=['chadsalyer'])
+# pruebas
+
+def sequenceWithinPuzzles(group = 'all'):
+    
+    if group == 'all' : 
+        toFilter = all_data_collection_urls
+    else:
+        toFilter = group
+        
+    urls = URL.objects.filter(name__in=toFilter)
+    sessions = CustomSession.objects.filter(url__in=urls)
+    qs = Event.objects.filter(session__in=sessions)
+    dataEvents = read_frame(qs)
+    
+    
     tutorialList = ['1. One Box', '2. Separated Boxes', '3. Rotate a Pyramid', '4. Match Silhouettes', '5. Removing Objects', '6. Stretch a Ramp', '7. Max 2 Boxes', '8. Combine 2 Ramps', '9. Scaling Round Objects', 'Sandbox']
     #Remove SandBox and tutorial levels.
     dataEvents['group'] = [json.loads(x)['group'] if 'group' in json.loads(x).keys() else '' for x in dataEvents['data']]
@@ -25,9 +39,6 @@ def sequenceWithinPuzzles(dataEvents, group = 'all'):
     # removing those rows where we dont have a group and a user that is not guest
     dataEvents = dataEvents[((dataEvents['group'] != '') & (dataEvents['user'] != '') & (dataEvents['user'] != 'guest'))]
     dataEvents['group_user_id'] = dataEvents['group'] + '~' + dataEvents['user']
-    # filtering to only take the group passed as argument
-    if(group != 'all'):
-        dataEvents = dataEvents[dataEvents['group'].isin(group)]
     # Data Cleaning
     dataEvents['time'] = pd.to_datetime(dataEvents['time'])
     dataEvents = dataEvents.sort_values('time') 
@@ -242,7 +253,7 @@ def sequenceWithinPuzzles(dataEvents, group = 'all'):
     for enum, event in data.iterrows():
         key = event['group_user_id']
         key_split = key.split('~')
-        event['group'] = key_split[0]
+        event['group_id'] = key_split[0]
         event['user'] = key_split[1]
         string = event['type']
         match = re.findall(regexNum, string)
@@ -256,6 +267,7 @@ def sequenceWithinPuzzles(dataEvents, group = 'all'):
             newData.append(event)
             
     
-    data = pd.DataFrame(newData, columns=['group', 'user', 'task_id', 'n_attempt', 'type', 'n_times', 'metadata']) 
+    data = pd.DataFrame(newData, columns=['group_id', 'user', 'task_id', 'n_attempt', 'type', 'n_times', 'metadata']) 
     return data
+
 
