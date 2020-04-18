@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # coding: utf-8
+
 from datacollection.models import Event, URL, CustomSession
 from django_pandas.io import read_frame
 import pandas as pd
@@ -11,7 +12,6 @@ import re
 from datetime import datetime
 from datetime import timedelta
 from collections import OrderedDict
-
 
 all_data_collection_urls = ['ginnymason', 'chadsalyer', 'kristinknowlton', 'lori day', 'leja', 'leja2', 'debbiepoull', 'juliamorgan']
 pd.options.mode.chained_assignment = None  # default='warn'
@@ -39,6 +39,9 @@ def sequenceWithinPuzzles(group = 'all'):
     # removing those rows where we dont have a group and a user that is not guest
     dataEvents = dataEvents[((dataEvents['group'] != '') & (dataEvents['user'] != '') & (dataEvents['user'] != 'guest'))]
     dataEvents['group_user_id'] = dataEvents['group'] + '~' + dataEvents['user']
+    # filtering to only take the group passed as argument
+    if(group != 'all'):
+        dataEvents = dataEvents[dataEvents['group'].isin(group)]
     # Data Cleaning
     dataEvents['time'] = pd.to_datetime(dataEvents['time'])
     dataEvents = dataEvents.sort_values('time') 
@@ -144,130 +147,113 @@ def sequenceWithinPuzzles(group = 'all'):
     taskDf = pd.DataFrame(newDataEvents, columns=['id', 'time', 'group_user_id', 'task_id', 'n_attempt', 'type', 'metadata']) 
 
     data = taskDf
-    listEvent = ['ws-rotate_view', 'ws-rotate_shape', 'ws-undo_action','ws-move_shape','ws-snapshot','ws-scale_shape']
+    listEvent = ['ws-rotate_view', 'ws-rotate_shape', 'ws-undo_action', 'ws-move_shape', 'ws-snapshot', 'ws-scale_shape']
     
-    for nameEvent in listEvent:
-        dataConvert2 = []
-        for user in data['group_user_id'].unique():
-            individualDf = data[data['group_user_id'] == user]
-            #Current action set
-            currentAction = []
-            #String with action types
-            actionString = ""
-            for enum, event in individualDf.iterrows():
-                #Add new action to the string
-                prov = actionString + event['type'] + " "
-                regex = "(" + nameEvent + ")+"
-                #Sustituimos y si solo hay eventos del tipo que buscamos debera quedar "".
-                #Replace event, should be "" if all event types are nameEvent.
-                string = re.sub(regex ,"", prov)
-                srem = re.sub(" ", "", string)
-                if (srem != ""):
-                    coinc = re.findall(regex, prov)
-                    #No coincidences.
-                    if (len(coinc) == 0):                    
-                        prov = ""
-                        actionString= ""
-                        if (len(currentAction) > 0):
-                            for a in currentAction:
-                                dataConvert2.append(a)
-                            dataConvert2.append(event)
+    dataConvert2 = []
+    for user in data['group_user_id'].unique():
+        individualDf = data[data['group_user_id'] == user]
+        #Current action set
+        currentAction = []
+        #String with action types
+        actionString = ""
+        actualEvent = 'None'
+        for enum, event in individualDf.iterrows():
+            key = event['group_user_id']
+            key_split = key.split('~')
+            event['group_id'] = key_split[0]
+            event['user'] = key_split[1]
+            actualEvent = event['type']
+            eq = True
+            for a in currentAction:
+                if (a['type'] != actualEvent):
+                    #Ver si podemos compactar
+                    eq = False
+                    
+            if (eq == False):      
+                igual = True
+                prev = ""
+                for a2 in currentAction:
+                    if (a2['type'] != prev):
+                        if (prev == "") :
+                            igual = True
                         else:
-                            dataConvert2.append(event)
-                        currentAction.clear()
-                    #One coincidence
-                    elif(len(coinc) == 1):
-                        #Se añade la accion anterior al DF, se añade la actual al buffer y seguimos buscando.
-                        if (len(currentAction) > 0) :
-                            dataConvert2.append(currentAction[0])
-                            currentAction.clear()
-                            currentAction.append(event)
-                            actionString = ""
-                            actionString = actionString + event['type'] + " "
-                            prov = ""
-                    #Hay más de una coincidencia. Se coge el numero total, se añade al dataFrame quitando el ultimo
-                    #evento que es el que es diferente al resto y se vuelve a añadir al buffer para seguir buscando a 
-                    #partir de el.
-                    #Two or more coincidences. Add the action with # of repetitions and continue.
-                    else:
-                        add = currentAction[0]
-                        add['type'] = nameEvent + 'x' + str(len(coinc))
-                        dataConvert2.append(add)
-                        currentAction.clear()
-                        currentAction.append(event)
-                        actionString = ""
-                        actionString = actionString + event['type'] + " "
-                        prov = ""  
-                #Check if it is the same shape_id or not
+                            igual = False
+                    prev = a2['type']
+                if ((igual == True) and (prev in listEvent)):
+                    add = currentAction[0]
+                    #add['type'] = add['type'] + 'x' + str(len(currentAction))
+                    add['n_times'] = len(currentAction)
+                    dataConvert2.append(add)
+                    currentAction.clear()
+                    currentAction.append(event)     
+                else: #igual != True 
+                    for a in currentAction:
+                        a['n_times'] = 1
+                        dataConvert2.append(a)
+                    currentAction.clear()
+                    currentAction.append(event)
+            else: #eq = True
+                if (event['type'] not in listEvent):
+                    currentAction.append(event)
+                    for a in currentAction:
+                        a['n_times'] = 1
+                        dataConvert2.append(a)
+                    currentAction.clear()
+                    
                 else:
                     if (len(currentAction) > 0):
-                        if (currentAction[0]['type'] in eventsWithMetaData):
-                            #Event with metadata, check if it is the same shape_id
-                            if (currentAction[0]['metadata']['shape_id'] == event['metadata']['shape_id']):
-                                actionString = actionString + event['type'] + " "
-                                currentAction.append(event)
+                            if (currentAction[0]['type'] in eventsWithMetaData):
+                                #Event with metadata, check if it is the same shape_id
+                                if (currentAction[0]['metadata']['shape_id'] == event['metadata']['shape_id']):
+                                    currentAction.append(event)
+                                else:
+                                    add = currentAction[0]
+                                    #add['type'] = add['type'] + 'x' + str(len(currentAction))
+                                    add['n_times'] = len(currentAction)
+                                    dataConvert2.append(add)
+                                    currentAction.clear()
+                                    currentAction.append(event)
+                            #Event without metaData, just concatenate.
                             else:
-                                add = currentAction[0]
-                                coinc3 = re.findall(regex, actionString)
-                                add['type'] = nameEvent + 'x' + str(len(coinc3))
-                                dataConvert2.append(add)
-                                actionString = ""
-                                actionString = actionString + event['type'] + " "
-                                currentAction.clear()
-                                currentAction.append(event)
-                                prov = ""
-                        #Event without metaData, just concatenate.
-                        else:
-                            actionString = actionString + event['type'] + " "
-                            currentAction.append(event) 
-                            
+                                currentAction.append(event) 
+
                     elif (len(currentAction) == 0):
-                        actionString = actionString + event['type'] + " "
                         currentAction.append(event)
-                                   
-            #Add last elems
-            #We must check if last elems can be also replaced.
-            final = ""
-            if (len(currentAction) > 0):
-                for e in currentAction:
-                    final = final + e['type'] + " "
-                string2 = re.sub(regex ,"", final)
-                srem2 = re.sub(" ", "", string2)
-                if (srem2 != ""):
-                #Add each action to the list
-                    for e in currentAction :
-                        dataConvert2.append(e)
-                else:
-                    coinc2 = re.findall(regex, final)
-                    add = currentAction[0]
-                    add['type'] = nameEvent + 'x' + str(len(coinc2))
-                    dataConvert2.append(add)
-        
-        #Create dataframe from list
-        consecutiveDf = pd.DataFrame(dataConvert2, columns=['id', 'time', 'group_user_id', 'task_id', 'n_attempt', 'type', 'metadata']) 
-        data = consecutiveDf
-    
-    newData = []
-    regexNum = '[0-9]+$'
-    regexNumX = '(x[0-9]+$)'
-    for enum, event in data.iterrows():
-        key = event['group_user_id']
-        key_split = key.split('~')
-        event['group_id'] = key_split[0]
-        event['user'] = key_split[1]
-        string = event['type']
-        match = re.findall(regexNum, string)
-        if (len(match) == 1) :
-            event['n_times'] = (int)(match[0])
-            matchX = re.findall(regexNumX, string)
-            event['type'] = string.split(matchX[0])[0] 
-            newData.append(event)
-        else :
-            event['n_times'] = 1
-            newData.append(event)
-            
-    
-    data = pd.DataFrame(newData, columns=['group_id', 'user', 'task_id', 'n_attempt', 'type', 'n_times', 'metadata']) 
+                
+                    
+        #Add last elems
+        #We must check if last elems can be also replaced.
+        final = ""
+        if (len(currentAction) > 0):
+            igual2 = True
+            prev = ""
+            for a2 in currentAction:
+                if (a2['type'] != prev):
+                    if (prev == "") :
+                        igual2 = True
+                    else:
+                        igual2 = False
+                prev = a2['type']
+            if ((igual == True) and (prev in listEvent)):
+                add = currentAction[0]
+                #add['type'] = add['type'] + 'x' + str(len(currentAction))
+                add['n_times'] = len(currentAction)
+                dataConvert2.append(add)
+                currentAction.clear()
+                currentAction.append(event)     
+            else: #igual != True 
+                for a in currentAction:
+                    a['n_times'] = 1
+                    dataConvert2.append(a)
+                currentAction.clear()
+                currentAction.append(event)
+               
+    #Create dataframe from list
+    #consecutiveDf = pd.DataFrame(dataConvert2, columns=['id', 'time', 'group_user_id', 'task_id', 'n_attempt', 'type', 'metadata'])         
+    data = pd.DataFrame(dataConvert2, columns=['group_id', 'user', 'task_id', 'n_attempt', 'type', 'n_times', 'metadata']) 
     return data
+
+
+
 
 
