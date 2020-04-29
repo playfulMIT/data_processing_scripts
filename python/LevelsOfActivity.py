@@ -9,7 +9,7 @@ import json
 # lelevelsOfActivity = computeLevelsOfActivity(dataEvents)
 
 def computeLevelsOfActivity(dataEvents, group = 'all'):
-        dataEvents['time'] = pd.to_datetime(dataEvents['time'])
+    dataEvents['time'] = pd.to_datetime(dataEvents['time'])
     dataEvents = dataEvents.sort_values('time')
     
     #iterates in the groups and users of the data
