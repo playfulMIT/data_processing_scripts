@@ -1,14 +1,27 @@
+from datacollection.models import Event, URL, CustomSession
+from django_pandas.io import read_frame
 import pandas as pd
-from datetime import datetime
 import numpy as np
 import json
+import hashlib
+from datetime import datetime
+from datetime import timedelta
+from collections import OrderedDict
 
-# USAGE EXAMPLE
-# dataEvents = pd.read_csv('/Users/jruipere/Dropbox (MIT)/Game-based Assessment/data_processing_scripts/data/anonymized_dataset.csv', sep=";")
-# dataEvents = pd.read_csv('/Users/pedroantonio/Desktop/data/anonymized_dataset.csv', sep=";")
-# lelevelsOfActivity = computeLevelsOfActivity(dataEvents)
+all_data_collection_urls = ['ginnymason', 'chadsalyer', 'kristinknowlton', 'lori day', 'leja', 'leja2', 'debbiepoull', 'juliamorgan']
 
-def computeLevelsOfActivity(dataEvents, group = 'all'):
+def computeLevelsOfActivity(group = 'all'):
+    
+    if group == 'all' : 
+        toFilter = all_data_collection_urls
+    else:
+        toFilter = group
+        
+    urls = URL.objects.filter(name__in=toFilter)
+    sessions = CustomSession.objects.filter(url__in=urls)
+    qs = Event.objects.filter(session__in=sessions)
+    dataEvents = read_frame(qs)
+    
     dataEvents['time'] = pd.to_datetime(dataEvents['time'])
     dataEvents = dataEvents.sort_values('time')
     
@@ -143,6 +156,3 @@ def computeLevelsOfActivity(dataEvents, group = 'all'):
         var_name='metric', value_name='value')
         
     return activity_by_user
-
-
-
