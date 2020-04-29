@@ -47,20 +47,17 @@ def computeLevelsOfActivity(group = 'all'):
     
     #indicate the index variable                                                                                                                                                               
     activity_by_user.index = activity_by_user['group_user_task_id'].values
-                                                                                              
+    
+    typeEvents = ['ws-snapshot','ws-paint', 'ws-rotate_view','ws-move_shape','ws-rotate_shape' ,'ws-scale_shape','ws-create_shape','ws-delete_shape','ws-undo_action','ws-redo_action']
+    
+   
+        
     #initialize the metrics                                                                                          
     activity_by_user['event'] = np.nan
     activity_by_user['different_events'] = np.nan
     activity_by_user['active_time'] = np.nan
-    activity_by_user['snapshot'] = 0
-    activity_by_user['paint'] = 0
-    activity_by_user['rotate_view'] = 0
-    activity_by_user['move_shape'] = 0
-    activity_by_user['scale_shape'] = 0
-    activity_by_user['create_shape'] = 0
-    activity_by_user['delete_shape'] = 0
-    activity_by_user['undo_action'] = 0
-    activity_by_user['redo_action'] = 0
+    for event in typeEvents:
+        activity_by_user[event] = 0
     
     #initialize the data structures
     userFunnelDict = dict()  
@@ -69,11 +66,9 @@ def computeLevelsOfActivity(group = 'all'):
     eventsDiff_puzzle = dict()
     timePuzzle = dict()
     globalTypesEvents = dict()
-    typesEvents = dict()
+    #typesEvents = dict()
     
-    
-    
-    
+      
     for user in dataEvents['group_user_id'].unique():
         
         # Computing active time
@@ -95,29 +90,19 @@ def computeLevelsOfActivity(group = 'all'):
                 
                 #create id: group+user+task_id                                                                              
                 user_puzzle_key = event['group'] + '~' + event['user'] + '~' + json.loads(event['data'])['task_id']
-                
+                        
                 # initialize if the id is new                                                                              
                 if(user_puzzle_key not in puzzleEvents.keys()):
                     puzzleEvents[user_puzzle_key]= 1
                     eventsDiff_puzzle[user_puzzle_key] = []
-                    timePuzzle[user_puzzle_key] = 0
-                    
-                    globalTypesEvents[user_puzzle_key] = dict()
-                    globalTypesEvents[user_puzzle_key]['ws-snapshot'] = 0
-                    globalTypesEvents[user_puzzle_key]['ws-paint'] = 0
-                    globalTypesEvents[user_puzzle_key]['ws-rotate_view'] = 0
-                    globalTypesEvents[user_puzzle_key]['ws-move_shape'] = 0
-                    globalTypesEvents[user_puzzle_key]['ws-scale_shape'] = 0
-                    globalTypesEvents[user_puzzle_key]['ws-create_shape'] = 0
-                    globalTypesEvents[user_puzzle_key]['ws-delete_shape'] = 0
-                    globalTypesEvents[user_puzzle_key]['ws-undo_action'] = 0
-                    globalTypesEvents[user_puzzle_key]['ws-redo_action'] = 0
-                    
                     eventsDiff_puzzle[user_puzzle_key].append(event['type'])
-                    
+                    timePuzzle[user_puzzle_key] = 0
+                    globalTypesEvents[user_puzzle_key] = dict()
+                    for ev in typeEvents:
+                        globalTypesEvents[user_puzzle_key][ev]= 0
+            
             # the event is not final event
             if(event['type'] not in ['ws-exit_to_menu', 'ws-puzzle_complete', 'ws-create_user', 'ws-login_user']): 
-                                                       
                     puzzleEvents[user_puzzle_key] += 1
                                                                                               
                     #add the event type                                                                          
@@ -130,29 +115,16 @@ def computeLevelsOfActivity(group = 'all'):
 
                     previousEvent = event 
                     
-                    #update event counters by type                                                                          
-                    if(event['type'] == 'ws-snapshot'):
-                        globalTypesEvents[user_puzzle_key]['ws-snapshot'] +=1
-                    elif(event['type'] == 'ws-rotate_view'):
-                        globalTypesEvents[user_puzzle_key]['ws-rotate_view'] +=1 
-                    elif(event['type'] == 'ws-paint'):
-                        globalTypesEvents[user_puzzle_key]['ws-paint'] +=1 
-                    elif(event['type'] == 'ws-move_shape'):
-                        globalTypesEvents[user_puzzle_key]['ws-move_shape'] +=1 
-                    elif(event['type'] == 'ws-scale_shape'):
-                        globalTypesEvents[user_puzzle_key]['ws-scale_shape'] +=1 
-                    elif(event['type'] == 'ws-create_shape'):
-                        globalTypesEvents[user_puzzle_key]['ws-create_shape'] +=1
-                    elif(event['type'] == 'ws-delete_shape'):
-                        globalTypesEvents[user_puzzle_key]['ws-delete_shape'] +=1
-                    elif(event['type'] == 'ws-undo_action'):
-                        globalTypesEvents[user_puzzle_key]['ws-undo_action'] +=1
-                    elif(event['type'] == 'ws-redo_action'):
-                        globalTypesEvents[user_puzzle_key]['ws-redo_action'] +=1    
+                    #update event counters by type
+                    if(event['type'] in typeEvents):
+                        globalTypesEvents[user_puzzle_key][event['type']] +=1
+                    
                         
             # the puzzle ends        
             if(event['type'] in ['ws-exit_to_menu', 'ws-puzzle_complete']):
-                                                                                              
+                    
+                    puzzleEvents[user_puzzle_key] += 1
+                    
                     #add the event type                                                                         
                     eventsDiff_puzzle[user_puzzle_key].append(event['type'])
                     
@@ -162,7 +134,7 @@ def computeLevelsOfActivity(group = 'all'):
                         timePuzzle[user_puzzle_key] += delta_seconds
 
                     previousEvent = event
-                    
+    
     # add the data by group_user_task_id            
     for i in dataEvents['group_user_task_id'].unique():
         key_split = i.split('~')
@@ -170,18 +142,9 @@ def computeLevelsOfActivity(group = 'all'):
             activity_by_user.at[i, 'event'] = puzzleEvents[i]
             activity_by_user.at[i, 'different_events'] = len(set(eventsDiff_puzzle[i]))
             activity_by_user.at[i, 'active_time'] = timePuzzle[i]
-            activity_by_user.at[i, 'snapshot'] = globalTypesEvents[i]['ws-snapshot']
-            activity_by_user.at[i, 'paint'] = globalTypesEvents[i]['ws-paint']
-            activity_by_user.at[i, 'rotate_view'] = globalTypesEvents[i]['ws-rotate_view']
-            activity_by_user.at[i, 'move_shape'] = globalTypesEvents[i]['ws-move_shape']
-            activity_by_user.at[i, 'scale_shape'] = globalTypesEvents[i]['ws-scale_shape']
-            activity_by_user.at[i, 'create_shape'] = globalTypesEvents[i]['ws-create_shape']
-            activity_by_user.at[i, 'delete_shape'] = globalTypesEvents[i]['ws-delete_shape']
-            activity_by_user.at[i, 'undo_action'] = globalTypesEvents[i]['ws-undo_action']
-            activity_by_user.at[i, 'redo_action'] = globalTypesEvents[i]['ws-redo_action']
-            
-    
-    
+            for event in typeEvents:
+                activity_by_user.at[i, event] = globalTypesEvents[i][event]
+
     #delete row with NaN
     activity_by_user.dropna(inplace=True)
     #delete group_user_task_id column
@@ -189,7 +152,7 @@ def computeLevelsOfActivity(group = 'all'):
     
     #data output preparation                                                                                          
     activity_by_user = pd.melt(activity_by_user, id_vars=['group', 'user','task_id'], 
-        value_vars=['event','different_events', 'active_time','snapshot','paint','rotate_view','move_shape','scale_shape','create_shape','delete_shape','undo_action','redo_action'], 
+        value_vars=['event','different_events', 'active_time','ws-snapshot','ws-paint','ws-rotate_view','ws-rotate_shape','ws-move_shape','ws-scale_shape','ws-create_shape','ws-delete_shape','ws-undo_action','ws-redo_action'], 
         var_name='metric', value_name='value')
         
     return activity_by_user
