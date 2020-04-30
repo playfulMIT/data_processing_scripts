@@ -179,15 +179,13 @@ def sequenceWithinPuzzles(group = 'all'):
                 if ((igual == True) and (prev in listEvent)):
                     add = currentAction[0]
                     #add['type'] = add['type'] + 'x' + str(len(currentAction))
-                    add['n_times'] = dict()
-                    add['n_times'][add['type']] = len(currentAction)
+                    add['n_times'] = len(currentAction)
                     dataConvert2.append(add)
                     currentAction.clear()
                     currentAction.append(event)     
                 else: #igual != True 
                     for a in currentAction:
-                        a['n_times'] = dict()
-                        a['n_times'][a['type']] = 1
+                        a['n_times'] = 1
                         dataConvert2.append(a)
                     currentAction.clear()
                     currentAction.append(event)
@@ -195,8 +193,7 @@ def sequenceWithinPuzzles(group = 'all'):
                 if (event['type'] not in listEvent):
                     currentAction.append(event)
                     for a in currentAction:
-                        a['n_times'] = dict()
-                        a['n_times'][a['type']] = 1
+                        a['n_times'] = 1
                         dataConvert2.append(a)
                     currentAction.clear()
                     
@@ -209,8 +206,7 @@ def sequenceWithinPuzzles(group = 'all'):
                                 else:
                                     add = currentAction[0]
                                     #add['type'] = add['type'] + 'x' + str(len(currentAction))
-                                    add['n_times'] = dict()
-                                    add['n_times'][add['type']] = len(currentAction)
+                                    add['n_times'] = len(currentAction)
                                     dataConvert2.append(add)
                                     currentAction.clear()
                                     currentAction.append(event)
@@ -238,15 +234,13 @@ def sequenceWithinPuzzles(group = 'all'):
             if ((igual == True) and (prev in listEvent)):
                 add = currentAction[0]
                 #add['type'] = add['type'] + 'x' + str(len(currentAction))
-                add['n_times'] = dict()
-                add['n_times'][add['type']] = len(currentAction)
+                add['n_times'] = len(currentAction)
                 dataConvert2.append(add)
                 currentAction.clear()
                 currentAction.append(event)     
             else: #igual != True 
                 for a in currentAction:
-                    a['n_times'] = dict()
-                    a['n_times'][a['type']] = 1
+                    a['n_times'] = 1
                     dataConvert2.append(a)
                 currentAction.clear()
                 currentAction.append(event)
@@ -269,6 +263,7 @@ def sequenceWithinPuzzles(group = 'all'):
                 mod.append(event)
     modDf = pd.DataFrame(mod, columns=['group_id', 'user', 'task_id', 'n_attempt', 'type', 'n_times', 'metadata'])
     return modDf
+
 
 
 
