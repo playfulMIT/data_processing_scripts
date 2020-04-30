@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 # coding: utf-8
-
 import pandas as pd
 import numpy as np
 import json
@@ -34,7 +33,7 @@ def sequenceWithinPuzzles(dataEvents, group = 'all'):
     
     newDataEvents = []
     #Select puzzle and actions
-    notSelectedEvents = ['ws-mode_change', 'ws-click_nothing', 'ws-click_disabled', 'ws-select_shape', 'ws-deselect_shape', 'ws-paint', 'ws-palette_change', 'ws-toggle_paint_display', 'ws-toggle_snapshot_display']
+    notSelectedEvents = ['ws-mode_change', 'ws-click_nothing', 'ws-click_disabled', 'ws-select_shape', 'ws-deselect_shape', 'ws-paint', 'ws-palette_change', 'ws-toggle_paint_display', 'ws-toggle_snapshot_display', 'ws-create_user', 'ws-redo_action', 'ws-undo_action', 'ws-restart_puzzle', 'ws-puzzle_started']
     #Selected puzzles
     selectedPuzzles = ['Square Cross-Sections', 'Bird Fez', 'Pi Henge', '45-Degree Rotations',  'Pyramids are Strange', 'Boxes Obscure Spheres', 'Object Limits', 'Warm Up', 'Angled Silhouette',
                     'Sugar Cones','Stranger Shapes', 'Tall and Small', 'Ramp Up and Can It', 'More Than Meets Your Eye', 'Not Bird', 'Unnecesary', 'Zzz', 'Bull Market', 'Few Clues', 'Orange Dance', 'Bear Market']
@@ -71,10 +70,6 @@ def sequenceWithinPuzzles(dataEvents, group = 'all'):
                 elif(event['type'] == 'ws-start_level'):
                     activePuzzle = json.loads(event['data'])['task_id']
                     event['task_id'] = activePuzzle
-                    if (event['task_id'] in selectedPuzzles):
-                        event['n_attempt'] = nAttempt
-                        event['metadata'] = dict()
-                        newDataEvents.append(event)
 
                 elif (event['type'] == 'ws-create_shape'):
                     event['task_id'] = activePuzzle
@@ -115,7 +110,7 @@ def sequenceWithinPuzzles(dataEvents, group = 'all'):
                         event['metadata']['shape_type'] = shape_type 
                         newDataEvents.append(event)
 
-                elif ((event['type'] == 'ws-exit_to_menu') and (activePuzzle in selectedPuzzles)):
+                elif ((event['type'] in ['ws-exit_to_menu', 'ws-login_user']) and (activePuzzle in selectedPuzzles)):
                     figureDict.clear()
                     nAttempt +=1
    
@@ -133,6 +128,7 @@ def sequenceWithinPuzzles(dataEvents, group = 'all'):
     taskDf = pd.DataFrame(newDataEvents, columns=['id', 'time', 'group_user_id', 'task_id', 'n_attempt', 'type', 'metadata']) 
 
     data = taskDf
+                        
     listEvent = ['ws-rotate_view', 'ws-rotate_shape', 'ws-undo_action', 'ws-move_shape', 'ws-snapshot', 'ws-scale_shape']
     
     dataConvert2 = []
@@ -168,13 +164,15 @@ def sequenceWithinPuzzles(dataEvents, group = 'all'):
                 if ((igual == True) and (prev in listEvent)):
                     add = currentAction[0]
                     #add['type'] = add['type'] + 'x' + str(len(currentAction))
-                    add['n_times'] = len(currentAction)
+                    add['n_times'] = dict()
+                    add['n_times'][add['type']] = len(currentAction)
                     dataConvert2.append(add)
                     currentAction.clear()
                     currentAction.append(event)     
                 else: #igual != True 
                     for a in currentAction:
-                        a['n_times'] = 1
+                        a['n_times'] = dict()
+                        a['n_times'][a['type']] = 1
                         dataConvert2.append(a)
                     currentAction.clear()
                     currentAction.append(event)
@@ -182,7 +180,8 @@ def sequenceWithinPuzzles(dataEvents, group = 'all'):
                 if (event['type'] not in listEvent):
                     currentAction.append(event)
                     for a in currentAction:
-                        a['n_times'] = 1
+                        a['n_times'] = dict()
+                        a['n_times'][a['type']] = 1
                         dataConvert2.append(a)
                     currentAction.clear()
                     
@@ -195,7 +194,8 @@ def sequenceWithinPuzzles(dataEvents, group = 'all'):
                                 else:
                                     add = currentAction[0]
                                     #add['type'] = add['type'] + 'x' + str(len(currentAction))
-                                    add['n_times'] = len(currentAction)
+                                    add['n_times'] = dict()
+                                    add['n_times'][add['type']] = len(currentAction)
                                     dataConvert2.append(add)
                                     currentAction.clear()
                                     currentAction.append(event)
@@ -223,13 +223,15 @@ def sequenceWithinPuzzles(dataEvents, group = 'all'):
             if ((igual == True) and (prev in listEvent)):
                 add = currentAction[0]
                 #add['type'] = add['type'] + 'x' + str(len(currentAction))
-                add['n_times'] = len(currentAction)
+                add['n_times'] = dict()
+                add['n_times'][add['type']] = len(currentAction)
                 dataConvert2.append(add)
                 currentAction.clear()
                 currentAction.append(event)     
             else: #igual != True 
                 for a in currentAction:
-                    a['n_times'] = 1
+                    a['n_times'] = dict()
+                    a['n_times'][a['type']] = 1
                     dataConvert2.append(a)
                 currentAction.clear()
                 currentAction.append(event)
@@ -237,9 +239,18 @@ def sequenceWithinPuzzles(dataEvents, group = 'all'):
     #Create dataframe from list
     #consecutiveDf = pd.DataFrame(dataConvert2, columns=['id', 'time', 'group_user_id', 'task_id', 'n_attempt', 'type', 'metadata'])         
     data = pd.DataFrame(dataConvert2, columns=['group_id', 'user', 'task_id', 'n_attempt', 'type', 'n_times', 'metadata']) 
-    return data
-
-
-
-
-
+    
+    #Recalculate n_attempt
+    mod = []
+    for user in data['user'].unique():
+            previousAttempt = 1
+            n_attempt = 1
+            individualDf = data[data['user'] == user]
+            for enum, event in individualDf.iterrows():
+                if (event['n_attempt'] != previousAttempt):
+                    n_attempt += 1
+                previousAttempt = event['n_attempt']
+                event['n_attempt'] = n_attempt
+                mod.append(event)
+    modDf = pd.DataFrame(mod, columns=['group_id', 'user', 'task_id', 'n_attempt', 'type', 'n_times', 'metadata'])
+    return modDf
