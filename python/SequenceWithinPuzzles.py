@@ -17,8 +17,7 @@ from collections import OrderedDict
 
 pd.options.mode.chained_assignment = None  # default='warn'
 def sequenceWithinPuzzles(dataEvents, group = 'all'):
-    tutorialList = ['1. One Box', '2. Separated Boxes', '3. Rotate a Pyramid', '4. Match Silhouettes', '5. Removing Objects', '6. Stretch a Ramp', '7. Max 2 Boxes', '8. Combine 2 Ramps', '9. Scaling Round Objects', 'Sandbox']
-    #Remove SandBox and tutorial levels.
+    
     dataEvents['group'] = [json.loads(x)['group'] if 'group' in json.loads(x).keys() else '' for x in dataEvents['data']]
     dataEvents['user'] = [json.loads(x)['user'] if 'user' in json.loads(x).keys() else '' for x in dataEvents['data']]
     # removing those rows where we dont have a group and a user that is not guest
@@ -30,16 +29,12 @@ def sequenceWithinPuzzles(dataEvents, group = 'all'):
     # Data Cleaning
     dataEvents['time'] = pd.to_datetime(dataEvents['time'])
     dataEvents = dataEvents.sort_values('time') 
-    
+
     newDataEvents = []
     #Select puzzle and actions
     notSelectedEvents = ['ws-mode_change', 'ws-click_nothing', 'ws-click_disabled', 'ws-select_shape', 'ws-deselect_shape', 'ws-paint', 'ws-palette_change', 'ws-toggle_paint_display', 'ws-toggle_snapshot_display', 'ws-create_user', 'ws-redo_action', 'ws-undo_action', 'ws-restart_puzzle', 'ws-puzzle_started']
-    #Selected puzzles
-    selectedPuzzles = ['Square Cross-Sections', 'Bird Fez', 'Pi Henge', '45-Degree Rotations',  'Pyramids are Strange', 'Boxes Obscure Spheres', 'Object Limits', 'Warm Up', 'Angled Silhouette',
-                    'Sugar Cones','Stranger Shapes', 'Tall and Small', 'Ramp Up and Can It', 'More Than Meets Your Eye', 'Not Bird', 'Unnecesary', 'Zzz', 'Bull Market', 'Few Clues', 'Orange Dance', 'Bear Market']
 
     eventsWithMetaData = ['ws-create_shape', 'ws-delete_shape', 'ws-rotate_shape', 'ws-scale_shape', 'ws-move_shape']
-
     for user in dataEvents['group_user_id'].unique():
             #Select rows
             user_events = dataEvents[dataEvents['group_user_id'] == user]
@@ -70,67 +65,84 @@ def sequenceWithinPuzzles(dataEvents, group = 'all'):
                 elif(event['type'] == 'ws-start_level'):
                     activePuzzle = json.loads(event['data'])['task_id']
                     event['task_id'] = activePuzzle
-
+                    #nAttempt += 1
+                    if (event['task_id'] == 'Sandbox'):
+                        continue
+                    event['n_attempt'] = nAttempt
+                    event['metadata'] = dict()
+                    newDataEvents.append(event)
+                
                 elif (event['type'] == 'ws-create_shape'):
                     event['task_id'] = activePuzzle
-                    if (event['task_id'] in selectedPuzzles):
-                        event['n_attempt'] = nAttempt
-                        shape_id = json.loads(event['data'])['objSerialization']
-                        shape_type = json.loads(event['data'])['shapeType']
-                        figureDict[shape_id] = shape_type
-                        event['metadata'] = dict()
-                        event['metadata']['shape_id'] = shape_id 
-                        event['metadata']['shape_type'] = shape_type 
-                        newDataEvents.append(event)
+                    if (event['task_id'] == 'Sandbox'):
+                        continue
+                    event['n_attempt'] = nAttempt
+                    shape_id = json.loads(event['data'])['objSerialization']
+                    shape_type = json.loads(event['data'])['shapeType']
+                    figureDict[shape_id] = shape_type
+                    event['metadata'] = dict()
+                    event['metadata']['shape_id'] = shape_id 
+                    event['metadata']['shape_type'] = shape_type 
+                    newDataEvents.append(event)
 
                 elif (event['type'] == 'ws-delete_shape' or event['type'] == 'ws-move_shape'):
                     event['task_id'] = activePuzzle
-                    if (event['task_id'] in selectedPuzzles):
-                        event['n_attempt'] = nAttempt
-                        if (event['type'] == 'ws-delete_shape'):
-                            idList = json.loads(event['data'])['deletedShapes']
-                        elif (event['type'] == 'ws-move_shape'):
-                            idList = json.loads(event['data'])['selectedObjects']
-                        for shapeId in idList:
-                            shape_id = shapeId
-                            shape_type = figureDict[shape_id]
-                            event['metadata'] = dict()
-                            event['metadata']['shape_id'] = shape_id 
-                            event['metadata']['shape_type'] = shape_type 
-                            newDataEvents.append(event)
-
-                elif (event['type'] == 'ws-rotate_shape' or event['type'] == 'ws-scale_shape'):
-                    event['task_id'] = activePuzzle
-                    if (event['task_id'] in selectedPuzzles):
-                        event['n_attempt'] = nAttempt
-                        shape_id = json.loads(event['data'])['selectedObject']
-                        shape_type = figureDict[shape_id]
+                    if (event['task_id'] == 'Sandbox'):
+                        continue
+                    event['n_attempt'] = nAttempt
+                    if (event['type'] == 'ws-delete_shape'):
+                        idList = json.loads(event['data'])['deletedShapes']
+                    elif (event['type'] == 'ws-move_shape'):
+                        idList = json.loads(event['data'])['selectedObjects']
+                    for shapeId in idList:
+                        shape_id = shapeId
+                        shape_type = figureDict.get(shape_id)
+                        if (shape_type == None):
+                            figureDict[shape_id] = shape_type
                         event['metadata'] = dict()
                         event['metadata']['shape_id'] = shape_id 
                         event['metadata']['shape_type'] = shape_type 
                         newDataEvents.append(event)
 
-                elif ((event['type'] in ['ws-exit_to_menu', 'ws-login_user']) and (activePuzzle in selectedPuzzles)):
-                    figureDict.clear()
+                elif (event['type'] == 'ws-rotate_shape' or event['type'] == 'ws-scale_shape'):
+                    event['task_id'] = activePuzzle
+                    if (event['task_id'] == 'Sandbox'):
+                        continue
+                    event['n_attempt'] = nAttempt
+                    shape_id = json.loads(event['data'])['selectedObject']
+                    shape_type = figureDict.get(shape_id)
+                    if (shape_type == None):
+                        figureDict[shape_id] = shape_type
+                    event['metadata'] = dict()
+                    event['metadata']['shape_id'] = shape_id 
+                    event['metadata']['shape_type'] = shape_type 
+                    newDataEvents.append(event)
+
+                elif(event['type'] in ['ws-exit_to_menu', 'ws-disconnect', 'ws-login_user']):
+                    #figureDict.clear()
+                    if (activePuzzle == 'Sandbox'):
+                        continue
                     nAttempt +=1
    
                 else :
                     event['task_id'] = activePuzzle
-                    if (event['task_id'] in selectedPuzzles):
-                        event['n_attempt'] = nAttempt
-                        event['metadata'] = dict()
-                        if (event['type'] == 'ws-check_solution'):
-                            prevCheck = True
-                            prevEvent = event
-                        else:
-                            newDataEvents.append(event)
-
+                    if (event['task_id'] == 'Sandbox'):
+                        continue
+                    event['n_attempt'] = nAttempt
+                    event['metadata'] = dict()
+                    if (event['type'] == 'ws-check_solution'):
+                        prevCheck = True
+                        prevEvent = event
+                    else:
+                        newDataEvents.append(event)
+                        
     taskDf = pd.DataFrame(newDataEvents, columns=['id', 'time', 'group_user_id', 'task_id', 'n_attempt', 'type', 'metadata']) 
 
     data = taskDf
                         
     listEvent = ['ws-rotate_view', 'ws-rotate_shape', 'ws-undo_action', 'ws-move_shape', 'ws-snapshot', 'ws-scale_shape']
     
+    #Collapse events
     dataConvert2 = []
     for user in data['group_user_id'].unique():
         individualDf = data[data['group_user_id'] == user]
@@ -164,13 +176,15 @@ def sequenceWithinPuzzles(dataEvents, group = 'all'):
                 if ((igual == True) and (prev in listEvent)):
                     add = currentAction[0]
                     #add['type'] = add['type'] + 'x' + str(len(currentAction))
-                    add['n_times'] = len(currentAction)
+                    add['n_times'] = dict()
+                    add['n_times'][add['type']] = len(currentAction)
                     dataConvert2.append(add)
                     currentAction.clear()
                     currentAction.append(event)     
                 else: #igual != True 
                     for a in currentAction:
-                        a['n_times'] = 1
+                        a['n_times'] = dict()
+                        a['n_times'][a['type']] = 1
                         dataConvert2.append(a)
                     currentAction.clear()
                     currentAction.append(event)
@@ -178,7 +192,8 @@ def sequenceWithinPuzzles(dataEvents, group = 'all'):
                 if (event['type'] not in listEvent):
                     currentAction.append(event)
                     for a in currentAction:
-                        a['n_times'] = 1
+                        a['n_times'] = dict()
+                        a['n_times'][a['type']] = 1
                         dataConvert2.append(a)
                     currentAction.clear()
                     
@@ -191,7 +206,8 @@ def sequenceWithinPuzzles(dataEvents, group = 'all'):
                                 else:
                                     add = currentAction[0]
                                     #add['type'] = add['type'] + 'x' + str(len(currentAction))
-                                    add['n_times'] = len(currentAction)
+                                    add['n_times'] = dict()
+                                    add['n_times'][add['type']] = len(currentAction)
                                     dataConvert2.append(add)
                                     currentAction.clear()
                                     currentAction.append(event)
@@ -218,14 +234,15 @@ def sequenceWithinPuzzles(dataEvents, group = 'all'):
                 prev = a2['type']
             if ((igual == True) and (prev in listEvent)):
                 add = currentAction[0]
-                #add['type'] = add['type'] + 'x' + str(len(currentAction))
-                add['n_times'] = len(currentAction)
+                add['n_times'] = dict()
+                add['n_times'][add['type']] = len(currentAction)
                 dataConvert2.append(add)
                 currentAction.clear()
                 currentAction.append(event)     
             else: #igual != True 
                 for a in currentAction:
-                    a['n_times'] = 1
+                    a['n_times'] = dict()
+                    a['n_times'][a['type']] = 1
                     dataConvert2.append(a)
                 currentAction.clear()
                 currentAction.append(event)
@@ -248,8 +265,6 @@ def sequenceWithinPuzzles(dataEvents, group = 'all'):
                 mod.append(event)
     modDf = pd.DataFrame(mod, columns=['group_id', 'user', 'task_id', 'n_attempt', 'type', 'n_times', 'metadata'])
     return modDf
-
-
 
 
 
