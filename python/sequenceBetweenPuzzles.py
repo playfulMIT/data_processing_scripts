@@ -43,30 +43,58 @@ def sequenceBetweenPuzzles(dataEvents, group = 'all'):
                     userPuzzleDict[user_key] = {}
                     numPuzzles = 1
                 if(event['type'] == 'ws-start_level'):
-                    #print('\\start level\\')
-                    #print(json.loads(event['data']))
                     activePuzzle = json.loads(event['data'])['task_id']
+                    if (activePuzzle == 'Sandbox'):
+                        continue
                     secondKey = str(numPuzzles) + '~' + event['session_id']
-                    userPuzzleDict[user_key][secondKey] = {activePuzzle : ''}  
+                    if (userPuzzleDict[user_key].get(secondKey) == None):
+                        userPuzzleDict[user_key][secondKey] = dict()
+                    if (userPuzzleDict[user_key][secondKey].get(activePuzzle) == None):
+                        userPuzzleDict[user_key][secondKey] = {activePuzzle : 'started'}
                 elif(event['type'] == 'ws-puzzle_started'):
+                    if (activePuzzle == 'Sandbox' or userPuzzleDict[user_key][secondKey][activePuzzle] in ['started','shape_created', 'submitted', 'completed']):
+                        continue
                     userPuzzleDict[user_key][secondKey] = {activePuzzle : 'started'}
                 elif(event['type'] == 'ws-create_shape'):
+                    if (activePuzzle == 'Sandbox' or userPuzzleDict[user_key][secondKey][activePuzzle] in ['shape_created', 'submitted', 'completed']):
+                        continue
                     userPuzzleDict[user_key][secondKey] = {activePuzzle : 'shape_created'}
                 elif(event['type'] == 'ws-check_solution'):
+                    if (activePuzzle == 'Sandbox' or userPuzzleDict[user_key][secondKey][activePuzzle] in ['submitted', 'completed']):
+                        continue
                     userPuzzleDict[user_key][secondKey] = {activePuzzle :'submitted'}
                 elif(event['type'] == 'ws-puzzle_complete'):
+                    if (activePuzzle == 'Sandbox'):
+                        continue
                     userPuzzleDict[user_key][secondKey] = {activePuzzle :'completed'}
-                elif(event['type'] in ['ws-puzzle_complete', 'ws-exit_to_menu', 'ws-disconnect']):
+                elif(event['type'] in ['ws-exit_to_menu', 'ws-disconnect', 'ws-login_user']):
+                    if (activePuzzle == 'Sandbox'):
+                        continue
                     numPuzzles +=1
                     
     userSessionList = []
     for key in userPuzzleDict.keys():
         for sequence in userPuzzleDict[key].keys():
                 key_split = sequence.split('~')
-                userSessionList.append([key, key_split[1], key_split[0], userPuzzleDict[key][sequence]])
+                userSessionList.append([key, key_split[1], int(key_split[0]), userPuzzleDict[key][sequence]])
 
     userSequence = pd.DataFrame(userSessionList, columns=['user', 'session_id', 'sequence', 'task_id'])
-    
-    return userSequence
+    #Recalculate sequence
+    mod = []
+    for user in userSequence['user'].unique():
+            previousAttempt = 1
+            n_attempt = 1
+            individualDf = userSequence[userSequence['user'] == user]
+            for enum, event in individualDf.iterrows():
+                if (event['sequence'] != previousAttempt):
+                    n_attempt += 1
+                previousAttempt = event['sequence']
+                event['sequence'] = n_attempt
+                mod.append(event)
+    modDf = pd.DataFrame(mod, columns=['user', 'session_id', 'sequence', 'task_id'])
+    return modDf
+
+
+
 
 
