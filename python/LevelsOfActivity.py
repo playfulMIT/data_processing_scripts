@@ -37,7 +37,7 @@ def computeLevelsOfActivity(dataEvents, group = 'all'):
     #indicate the index variable                                                                                                                                                               
     activity_by_user.index = activity_by_user['group_user_task_id'].values
     
-    typeEvents = ['ws-puzzle_started', 'ws-snapshot','ws-paint', 'ws-rotate_view','ws-move_shape','ws-rotate_shape' ,'ws-scale_shape','ws-create_shape','ws-delete_shape','ws-undo_action','ws-redo_action', 'ws-check_solution']
+    typeEvents = ['ws-snapshot','ws-paint', 'ws-rotate_view','ws-move_shape','ws-rotate_shape' ,'ws-scale_shape','ws-create_shape','ws-delete_shape','ws-undo_action','ws-redo_action', 'ws-check_solution']
     
    
         
@@ -164,7 +164,7 @@ def computeLevelsOfActivity(dataEvents, group = 'all'):
     
     #data output preparation                                                                                          
     activity_by_user = pd.melt(activity_by_user, id_vars=['group', 'user','task_id'], 
-        value_vars=['timeTotal','inactive_time','event','different_events', 'active_time','ws-puzzle_started','ws-snapshot','ws-paint','ws-rotate_view','ws-rotate_shape','ws-move_shape','ws-scale_shape','ws-create_shape','ws-delete_shape','ws-undo_action','ws-redo_action','ws-check_solution'], 
+        value_vars=['timeTotal','inactive_time','event','different_events', 'active_time','ws-snapshot','ws-paint','ws-rotate_view','ws-rotate_shape','ws-move_shape','ws-scale_shape','ws-create_shape','ws-delete_shape','ws-undo_action','ws-redo_action','ws-check_solution'], 
         var_name='metric', value_name='value')
         
     return activity_by_user
