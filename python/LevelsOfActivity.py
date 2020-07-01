@@ -95,7 +95,7 @@ def computeLevelsOfActivity(dataEvents, group = 'all'):
                        
                 # initialize if the id is new                                                                              
                 if(user_puzzle_key not in puzzleEvents.keys()):
-                    totalTime[user_puzzle_key] = 0
+                    #totalTime[user_puzzle_key] = 0
                     puzzleEvents[user_puzzle_key]= 1
                     eventsDiff_puzzle[user_puzzle_key] = []
                     eventsDiff_puzzle[user_puzzle_key].append(event['type'])

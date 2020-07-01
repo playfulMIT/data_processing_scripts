@@ -48,11 +48,13 @@ def computeLevelsOfActivity(group = 'all'):
     #indicate the index variable                                                                                                                                                               
     activity_by_user.index = activity_by_user['group_user_task_id'].values
     
-    typeEvents = ['ws-snapshot','ws-paint', 'ws-rotate_view','ws-move_shape','ws-rotate_shape' ,'ws-scale_shape','ws-create_shape','ws-delete_shape','ws-undo_action','ws-redo_action']
+    typeEvents = ['ws-snapshot','ws-paint', 'ws-rotate_view','ws-move_shape','ws-rotate_shape' ,'ws-scale_shape','ws-create_shape','ws-delete_shape','ws-undo_action','ws-redo_action', 'ws-check_solution']
     
    
         
-    #initialize the metrics                                                                                          
+    #initialize the metrics  
+    activity_by_user['timeTotal'] = np.nan
+    activity_by_user['inactive_time'] = np.nan
     activity_by_user['event'] = np.nan
     activity_by_user['different_events'] = np.nan
     activity_by_user['active_time'] = np.nan
@@ -66,7 +68,8 @@ def computeLevelsOfActivity(group = 'all'):
     eventsDiff_puzzle = dict()
     timePuzzle = dict()
     globalTypesEvents = dict()
-    #typesEvents = dict()
+    eventInitial = dict()
+    totalTime = dict()
     
       
     for user in dataEvents['group_user_id'].unique():
@@ -74,6 +77,7 @@ def computeLevelsOfActivity(group = 'all'):
         # Computing active time
         previousEvent = None
         theresHoldActivity = 60 # np.percentile(allDifferences, 98) is 10 seconds
+        limit = 3600
         activeTime = []
         
         user_events = dataEvents[dataEvents['group_user_id'] == user]
@@ -90,7 +94,16 @@ def computeLevelsOfActivity(group = 'all'):
                 
                 #create id: group+user+task_id                                                                              
                 user_puzzle_key = event['group'] + '~' + event['user'] + '~' + json.loads(event['data'])['task_id']
-                        
+                
+                if(user_puzzle_key not in totalTime.keys()):
+                    totalTime[user_puzzle_key] = 0
+                    
+                delta_seconds = (event['time'] - previousEvent['time']).total_seconds()
+                if((delta_seconds < limit)):
+                    totalTime[user_puzzle_key] += delta_seconds
+                previousEvent = event
+                
+                       
                 # initialize if the id is new                                                                              
                 if(user_puzzle_key not in puzzleEvents.keys()):
                     puzzleEvents[user_puzzle_key]= 1
@@ -100,6 +113,8 @@ def computeLevelsOfActivity(group = 'all'):
                     globalTypesEvents[user_puzzle_key] = dict()
                     for ev in typeEvents:
                         globalTypesEvents[user_puzzle_key][ev]= 0
+                        
+                       
             
             # the event is not final event
             if(event['type'] not in ['ws-exit_to_menu', 'ws-puzzle_complete', 'ws-create_user', 'ws-login_user']): 
@@ -110,6 +125,8 @@ def computeLevelsOfActivity(group = 'all'):
                     
                     #calculate the duration of the event                                                                          
                     delta_seconds = (event['time'] - previousEvent['time']).total_seconds()
+                    if((delta_seconds < limit)):
+                        totalTime[user_puzzle_key] += delta_seconds
                     if((delta_seconds < theresHoldActivity)):
                         timePuzzle[user_puzzle_key] += delta_seconds
 
@@ -122,7 +139,7 @@ def computeLevelsOfActivity(group = 'all'):
                         
             # the puzzle ends        
             if(event['type'] in ['ws-exit_to_menu', 'ws-puzzle_complete']):
-                    
+                
                     puzzleEvents[user_puzzle_key] += 1
                     
                     #add the event type                                                                         
@@ -130,8 +147,11 @@ def computeLevelsOfActivity(group = 'all'):
                     
                     #calculate the duration of the event                                                                          
                     delta_seconds = (event['time'] - previousEvent['time']).total_seconds()
+                    if((delta_seconds < limit)):
+                        totalTime[user_puzzle_key] += delta_seconds
                     if((delta_seconds < theresHoldActivity)):
                         timePuzzle[user_puzzle_key] += delta_seconds
+                        
 
                     previousEvent = event
     
@@ -139,6 +159,8 @@ def computeLevelsOfActivity(group = 'all'):
     for i in dataEvents['group_user_task_id'].unique():
         key_split = i.split('~')
         if(key_split[2] != ''):
+            activity_by_user.at[i, 'timeTotal'] = totalTime[i]
+            activity_by_user.at[i, 'inactive_time'] = totalTime[i]-timePuzzle[i]
             activity_by_user.at[i, 'event'] = puzzleEvents[i]
             activity_by_user.at[i, 'different_events'] = len(set(eventsDiff_puzzle[i]))
             activity_by_user.at[i, 'active_time'] = timePuzzle[i]
@@ -152,7 +174,7 @@ def computeLevelsOfActivity(group = 'all'):
     
     #data output preparation                                                                                          
     activity_by_user = pd.melt(activity_by_user, id_vars=['group', 'user','task_id'], 
-        value_vars=['event','different_events', 'active_time','ws-snapshot','ws-paint','ws-rotate_view','ws-rotate_shape','ws-move_shape','ws-scale_shape','ws-create_shape','ws-delete_shape','ws-undo_action','ws-redo_action'], 
+        value_vars=['timeTotal','inactive_time','event','different_events', 'active_time','ws-snapshot','ws-paint','ws-rotate_view','ws-rotate_shape','ws-move_shape','ws-scale_shape','ws-create_shape','ws-delete_shape','ws-undo_action','ws-redo_action','ws-check_solution'], 
         var_name='metric', value_name='value')
         
     return activity_by_user
