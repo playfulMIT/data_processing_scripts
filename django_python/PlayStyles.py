@@ -1,17 +1,35 @@
 #!/usr/bin/env python
 # coding: utf-8
 
+from datacollection.models import Event, URL, CustomSession
+from django_pandas.io import read_frame
 import pandas as pd
-from datetime import datetime
 import numpy as np
-from scipy import stats
 import json
+import hashlib
+from scipy import stats
+from datetime import datetime
+from datetime import timedelta
 
-# USAGE EXAMPLE
-# dataEvents = pd.read_csv('/Users/manuelgomezmoratilla/Desktop/TFG/data_processing_scripts/data/anonamyze_all_data_collection_v2.csv', sep=";")
-# df2 = computePlayStyles(dataEvents)
 
-def computePlayStyles(dataEvents,  puzzles = 'all', group = 'all'):
+##Usage : df2 = computePlayStyles(group=['ginnymason'])
+##df2
+
+
+all_data_collection_urls = ['ginnymason', 'chadsalyer', 'kristinknowlton', 'lori day', 'leja', 'leja2', 'debbiepoull', 'juliamorgan']
+
+def computePlayStyles(puzzles = 'all', group = 'all'):
+    
+    if group == 'all' : 
+        toFilter = all_data_collection_urls
+    else:
+        toFilter = group
+        
+    urls = URL.objects.filter(name__in=toFilter)
+    sessions = CustomSession.objects.filter(url__in=urls)
+    qs = Event.objects.filter(session__in=sessions)
+    dataEvents = read_frame(qs)
+    
     if puzzles == 'all':
         puzzles = ['Square Cross-Sections', 'Bird Fez', 'Pi Henge', '45-Degree Rotations',  'Pyramids are Strange', 'Boxes Obscure Spheres', 'Object Limits', 'Angled Silhouette',
                   'Sugar Cones','Stranger Shapes', 'Tall and Small', 'Ramp Up and Can It', 'More Than Meets Your Eye', 'Not Bird', 'Zzz', 'Bull Market', 'Orange Dance', 'Bear Market']
@@ -463,7 +481,4 @@ def computePlayStyles(dataEvents,  puzzles = 'all', group = 'all'):
 
     finalDf = pd.DataFrame(finalList, columns=['group_id', 'user', 'task_id', 'n_attempt', 'spatialDimension', 'percSpatialValue', 'PercentileSpatialAbove85', 'PercentileSpatialBelow15', 'engageDimension', 'percEngageValue', 'PercentileEngageAbove85', 'PercentileEngageBelow15', 'exploreDimension', 'percExploreValue', 'PercentileExploreAbove85', 'PercentileExploreBelow15', 'experimentDimension', 'percExperimentValue', 'PercentileExperimentAbove85', 'PercentileExperimentBelow15', 'reflexDimension', 'percReflexValue', 'PercentileReflexAbove85', 'PercentileReflexBelow15', 'errorRectDimension', 'percErrorRectValue', 'PercentileErrorRectAbove85', 'PercentileErrorRectBelow15', 'persistenceDimension', 'percPersistenceValue', 'PercentilePersistenceAbove85', 'PercentilePersistenceBelow15', 'completed'])
     return finalDf
-
-
-
 
