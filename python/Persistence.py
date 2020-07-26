@@ -81,10 +81,11 @@ def computePersistence(dataEvents, group = 'all'):
     activity_by_user['different_events'] = np.nan
     activity_by_user['persistence'] = np.nan
     activity_by_user['percentileAtt'] = np.nan
-    activity_by_user['percentileTime'] = np.nan
-    activity_by_user['persistenceTime'] = np.nan
-    activity_by_user['persistenceAtt'] = np.nan
-    activity_by_user['totalUserPersistence'] = np.nan
+    activity_by_user['percentileActiveTime'] = np.nan
+    #activity_by_user['percTimeAbove85'] = np.nan
+   # activity_by_user['percTimeAbove15'] = np.nan
+    #activity_by_user['percAttAbove85'] = np.nan
+    #activity_by_user['percAttAbove15'] = np.nan
     
     for event in typeEvents:
         activity_by_user[event] = 0
@@ -228,11 +229,15 @@ def computePersistence(dataEvents, group = 'all'):
     puzzleTime = dict()
     puzzleAtt = dict()
     
-    medianTime = dict()
-    medianAtt = dict()
+    percentileTimeMax = dict()
+    percentileTimeMin = dict()
+    percentileAttMax = dict()
+    percentileAttMin = dict()
     
-    checkPersistantAtt = dict()
-    checkPersistantTime = dict()
+    checkPersistantAttMax = dict()
+    checkPersistantAttMin = dict()
+    checkPersistantTimeMax = dict()
+    checkPersistantTimeMin = dict()
     
     for user in userTime.keys():
         for puzzle in userTime[user]:
@@ -245,17 +250,22 @@ def computePersistence(dataEvents, group = 'all'):
             
             
     for puzzle in puzzleTime.keys():
-        if(puzzle not in medianTime.keys()):
+        if(puzzle not in percentileAttMax.keys()):
             #medianTime[puzzle] = statistics.median(puzzleTime[puzzle])
             #medianAtt[puzzle] = statistics.median(puzzleAtt[puzzle])
-            medianTime[puzzle] = np.percentile(puzzleTime[puzzle], 90)
-            medianAtt[puzzle] = np.percentile(puzzleAtt[puzzle], 90)
+            percentileTimeMax[puzzle] = np.percentile(puzzleTime[puzzle], 85)
+            percentileTimeMin[puzzle] = np.percentile(puzzleTime[puzzle], 15)
+            percentileAttMax[puzzle] = np.percentile(puzzleAtt[puzzle], 85)
+            percentileAttMin[puzzle] = np.percentile(puzzleAtt[puzzle], 15)
                  
     persistent = dict()
     boolPersistent = dict()
     totalAtt = dict()
     persistentCase = dict()
     persistentPercent = dict()
+    
+    percentileActiveTime = dict()
+    percentileAtt = dict()
     
     
     for user in userTime.keys():
@@ -266,25 +276,41 @@ def computePersistence(dataEvents, group = 'all'):
         key_split = i.split('~')
         if(key_split[2] != ''):
             
+            
+            percentileActiveTime[i] = stats.percentileofscore(puzzleTime[key_split[2]], userTime[key_split[1]][key_split[2]])
+            percentileAtt[i] = stats.percentileofscore(puzzleAtt[key_split[2]], userAtt[key_split[1]][key_split[2]])
+            
+            
+            
             if(key_split[1] not in persistentCase.keys()):
                 totalAtt[key_split[1]] = 0
                 persistentCase[key_split[1]] = 0
                 
-            if(i not in checkPersistantAtt.keys()):
-                checkPersistantAtt[i] = 0
-                checkPersistantTime[i] = 0
+            if(i not in checkPersistantAttMax.keys()):
+                checkPersistantAttMax[i] = False
+                checkPersistantAttMin[i] = False
+                checkPersistantTimeMax[i] = False
+                checkPersistantTimeMin[i] = False
                 boolPersistent[i] = 0
                 persistentPercent[i] = 0
 
                 
-            if(userTime[key_split[1]][key_split[2]] >= medianTime[key_split[2]]):
-                checkPersistantTime[i] = 1
-            
-            if(userAtt[key_split[1]][key_split[2]] >= medianAtt[key_split[2]]):
-                checkPersistantAtt[i]=1
+            if(userAtt[key_split[1]][key_split[2]] >= percentileAttMax[key_split[2]]):
+                checkPersistantAttMax[i] = True
+            if(userAtt[key_split[1]][key_split[2]] <= percentileAttMin[key_split[2]]):
+                checkPersistantAttMin[i] = True
                 
-            if(checkPersistantTime[i] == 1):
-                if(checkPersistantAtt[i]== 1):
+            if(userTime[key_split[1]][key_split[2]] >= percentileTimeMax[key_split[2]]):
+                checkPersistantTimeMax[i] = True
+                
+            if(userTime[key_split[1]][key_split[2]] <= percentileTimeMin[key_split[2]]):
+                checkPersistantTimeMin[i] = True
+            
+#            if(userAtt[key_split[1]][key_split[2]] >= medianAtt[key_split[2]]):
+#                checkPersistantAtt[i]=1
+                
+            if(checkPersistantTimeMax[i] == True):
+                if(checkPersistantAttMax[i]== True):
                     boolPersistent[i] = 1
             else: boolPersistent[i] = 0
                 
@@ -315,12 +341,14 @@ def computePersistence(dataEvents, group = 'all'):
             activity_by_user.at[i, 'event'] = puzzleEvents[i]
             activity_by_user.at[i, 'different_events'] = len(set(eventsDiff_puzzle[i]))
             activity_by_user.at[i, 'active_time'] = timePuzzle[i]
-            activity_by_user.at[i, 'percentileAtt'] = percentilAtt[i]
-            activity_by_user.at[i, 'percentileTime'] = percentilTime[i]
+            activity_by_user.at[i, 'percentileAtt'] = percentileAtt[i]
+            activity_by_user.at[i, 'percentileActiveTime'] = percentileActiveTime[i]
             activity_by_user.at[i, 'completed'] = completados[i]
             activity_by_user.at[i, 'persistence'] = boolPersistent[i]
-            activity_by_user.at[i, 'persistenceTime'] = checkPersistantTime[i]
-            activity_by_user.at[i, 'persistenceAtt'] = checkPersistantAtt[i]
+            activity_by_user.at[i, 'percTimeAbove85'] = checkPersistantTimeMax[i]
+            activity_by_user.at[i, 'percTimeAbove15'] = checkPersistantTimeMin[i]
+            activity_by_user.at[i, 'percAttAbove85'] = checkPersistantAttMax[i]
+            activity_by_user.at[i, 'percAttAbove15'] = checkPersistantAttMin[i]
             activity_by_user.at[i, 'totalUserPersistence'] = persistentPercent[i]
             
             
@@ -335,6 +363,10 @@ def computePersistence(dataEvents, group = 'all'):
     activity_by_user.drop(columns=['group_user_task_id'], inplace=True)
     
     #data output preparation
-    activity_by_user = pd.DataFrame(activity_by_user, columns=['group', 'user','task_id', 'completed', 'active_time','percentileTime','persistenceTime','ws-check_solution','percentileAtt','persistenceAtt', 'persistence', 'totalUserPersistence'])
+    activity_by_user = pd.DataFrame(activity_by_user, columns=['group', 'user','task_id', 'completed', 'active_time','percentileActiveTime','percTimeAbove85', 'percTimeAbove15', 'ws-check_solution','percentileAtt','percAttAbove85', 'percAttAbove15', 'totalUserPersistence'])
         
     return activity_by_user
+
+
+
+
