@@ -1,7 +1,10 @@
+
 import pandas as pd
 from datetime import datetime
 import numpy as np
 import json
+import statistics
+from scipy import stats
 
 # USAGE EXAMPLE
 # dataEvents = pd.read_csv('/Users/jruipere/Dropbox (MIT)/Game-based Assessment/data_processing_scripts/data/anonymized_dataset.csv', sep=";")
