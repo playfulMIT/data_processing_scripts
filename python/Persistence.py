@@ -346,9 +346,9 @@ def computePersistence(dataEvents, group = 'all'):
             activity_by_user.at[i, 'completed'] = completados[i]
             activity_by_user.at[i, 'persistence'] = boolPersistent[i]
             activity_by_user.at[i, 'percTimeAbove85'] = checkPersistantTimeMax[i]
-            activity_by_user.at[i, 'percTimeAbove15'] = checkPersistantTimeMin[i]
+            activity_by_user.at[i, 'percTimeBelow15'] = checkPersistantTimeMin[i]
             activity_by_user.at[i, 'percAttAbove85'] = checkPersistantAttMax[i]
-            activity_by_user.at[i, 'percAttAbove15'] = checkPersistantAttMin[i]
+            activity_by_user.at[i, 'percAttBelow15'] = checkPersistantAttMin[i]
             activity_by_user.at[i, 'totalUserPersistence'] = persistentPercent[i]
             
             
@@ -363,7 +363,7 @@ def computePersistence(dataEvents, group = 'all'):
     activity_by_user.drop(columns=['group_user_task_id'], inplace=True)
     
     #data output preparation
-    activity_by_user = pd.DataFrame(activity_by_user, columns=['group', 'user','task_id', 'completed', 'active_time','percentileActiveTime','percTimeAbove85', 'percTimeAbove15', 'ws-check_solution','percentileAtt','percAttAbove85', 'percAttAbove15', 'totalUserPersistence'])
+    activity_by_user = pd.DataFrame(activity_by_user, columns=['group', 'user','task_id', 'completed', 'active_time','percentileActiveTime','percTimeAbove85', 'percTimeBelow15', 'ws-check_solution','percentileAtt','percAttAbove85', 'percAttBelow15', 'totalUserPersistence'])
         
     return activity_by_user
 
