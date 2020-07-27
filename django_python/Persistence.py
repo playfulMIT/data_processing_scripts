@@ -1,12 +1,13 @@
+from datacollection.models import Event, URL, CustomSession
+from django_pandas.io import read_frame
 import pandas as pd
-from datetime import datetime
 import numpy as np
 import json
-
-# USAGE EXAMPLE
-# dataEvents = pd.read_csv('/Users/jruipere/Dropbox (MIT)/Game-based Assessment/data_processing_scripts/data/anonymized_dataset.csv', sep=";")
-# dataEvents = pd.read_csv('/Users/pedroantonio/Desktop/data/anonymized_dataset.csv', sep=";")
-# lelevelsOfActivity = computeLevelsOfActivity(dataEvents)
+import hashlib
+from datetime import datetime
+from datetime import timedelta
+from collections import OrderedDict
+from scipy import stats
 
 # mapping to positions
 typeMapping = ['Sandbox~SAND', '1. One Box~Tutorial', '2. Separated Boxes~Tutorial', '3. Rotate a Pyramid~Tutorial', '4. Match Silhouettes~Tutorial', '5. Removing Objects~Tutorial', '6. Stretch a Ramp~Tutorial', '7. Max 2 Boxes~Tutorial', '8. Combine 2 Ramps~Tutorial', '9. Scaling Round Objects~Tutorial',
@@ -40,9 +41,21 @@ for puzzle in typeMapping:
     desc = puzzle.split("~")
     allPuzzles.append(desc[0])
 
+all_data_collection_urls = ['ginnymason', 'chadsalyer', 'kristinknowlton', 'lori day', 'leja', 'leja2', 'debbiepoull', 'juliamorgan']
 
-def computePersistence(dataEvents, group = 'all'):
 
+
+def computePersistence(group = 'all'):
+
+    if group == 'all' :
+        toFilter = all_data_collection_urls
+    else:
+        toFilter = group
+        
+    urls = URL.objects.filter(name__in=toFilter)
+    sessions = CustomSession.objects.filter(url__in=urls)
+    qs = Event.objects.filter(session__in=sessions)
+    dataEvents = read_frame(qs)
     
     dataEvents['time'] = pd.to_datetime(dataEvents['time'])
     dataEvents = dataEvents.sort_values('time')
@@ -366,7 +379,5 @@ def computePersistence(dataEvents, group = 'all'):
     activity_by_user = pd.DataFrame(activity_by_user, columns=['group', 'user','task_id', 'completed', 'active_time','percentileActiveTime','percTimeAbove85', 'percTimeBelow15', 'ws-check_solution','percentileAtt','percAttAbove85', 'percAttBelow15', 'totalUserPersistence'])
         
     return activity_by_user
-
-
 
 
