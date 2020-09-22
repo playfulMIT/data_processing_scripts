@@ -10,9 +10,22 @@ from collections import OrderedDict
 from scipy import stats
 
 # mapping to positions
-typeMapping = ['Sandbox~SAND', '1. One Box~Tutorial', '2. Separated Boxes~Tutorial', '3. Rotate a Pyramid~Tutorial', '4. Match Silhouettes~Tutorial', '5. Removing Objects~Tutorial', '6. Stretch a Ramp~Tutorial', '7. Max 2 Boxes~Tutorial', '8. Combine 2 Ramps~Tutorial', '9. Scaling Round Objects~Tutorial',
+
+difficultyMapping = ['Sandbox~0.000001','1. One Box~0.000002', '2. Separated Boxes~0.111127', '3. Rotate a Pyramid~0.083447', '4. Match Silhouettes~0.061887', '5. Removing Objects~0.106021', '6. Stretch a Ramp~0.107035', '7. Max 2 Boxes~0.078039', '8. Combine 2 Ramps~0.068608', '9. Scaling Round Objects~0.128647', 
+               'Square Cross-Sections~0.199714', 'Bird Fez~0.156674', 'Pi Henge~0.067346', '45-Degree Rotations~0.096715',  'Pyramids are Strange~0.179600', 'Boxes Obscure Spheres~0.266198', 'Object Limits~0.257177', 'Not Bird~0.260197', 'Angled Silhouette~0.147673',
+               'Warm Up~0.183971','Tetromino~0.226869', 'Stranger Shapes~0.283971', 'Sugar Cones~0.085909', 'Tall and Small~0.266869', 'Ramp Up and Can It~0.206271', 'More Than Meets Your Eye~0.192319', 'Unnecessary~0.76', 'Zzz~0.234035', 'Bull Market~0.358579', 'Few Clues~0.324041', 'Orange Dance~0.647731', 'Bear Market~1.000000']
+
+
+typeMapping = ['Sandbox~SAND', '1. One Box~Tutorial', '2. Separated Boxes~Tutorial', '3. Rotate a Pyramid~Tutorial', '4. Match Silhouettes~Tutorial', '5. Removing Objects~Tutorial', '6. Stretch a Ramp~Tutorial', '7. Max 2 Boxes~Tutorial', '8. Combine 2 Ramps~Tutorial', '9. Scaling Round Objects~Tutorial', 
                'Square Cross-Sections~Easy Puzzles', 'Bird Fez~Easy Puzzles', 'Pi Henge~Easy Puzzles', '45-Degree Rotations~Easy Puzzles',  'Pyramids are Strange~Easy Puzzles', 'Boxes Obscure Spheres~Easy Puzzles', 'Object Limits~Easy Puzzles', 'Not Bird~Easy Puzzles', 'Angled Silhouette~Easy Puzzles',
                'Warm Up~Hard Puzzles','Tetromino~Hard Puzzles', 'Stranger Shapes~Hard Puzzles', 'Sugar Cones~Hard Puzzles', 'Tall and Small~Hard Puzzles', 'Ramp Up and Can It~Hard Puzzles', 'More Than Meets Your Eye~Hard Puzzles', 'Unnecessary~Hard Puzzles', 'Zzz~Hard Puzzles', 'Bull Market~Hard Puzzles', 'Few Clues~Hard Puzzles', 'Orange Dance~Hard Puzzles', 'Bear Market~Hard Puzzles']
+
+difficultyPuzzles = dict()
+
+for puzzle in difficultyMapping:
+    desc = puzzle.split("~")
+    difficultyPuzzles[desc[0]] = float(desc[1])
+
 
 tutorialPuzzles = []
 
@@ -34,7 +47,7 @@ intermediatePuzzles = []
 for puzzle in typeMapping:
     desc = puzzle.split("~")
     if(desc[1] == 'Easy Puzzles'):
-        intermediatePuzzles.append(desc[0])
+        intermediatePuzzles.append(desc[0])        
         
 allPuzzles = []
 for puzzle in typeMapping:
@@ -43,341 +56,478 @@ for puzzle in typeMapping:
 
 all_data_collection_urls = ['ginnymason', 'chadsalyer', 'kristinknowlton', 'lori day', 'leja', 'leja2', 'debbiepoull', 'juliamorgan']
 
-
-
 def computePersistence(group = 'all'):
 
-    if group == 'all' :
+    if group == 'all' : 
         toFilter = all_data_collection_urls
     else:
         toFilter = group
-        
+
     urls = URL.objects.filter(name__in=toFilter)
     sessions = CustomSession.objects.filter(url__in=urls)
     qs = Event.objects.filter(session__in=sessions)
     dataEvents = read_frame(qs)
-    
+
+
     dataEvents['time'] = pd.to_datetime(dataEvents['time'])
     dataEvents = dataEvents.sort_values('time')
-    
-    #iterates in the groups and users of the data
+
+        #iterates in the groups and users of the data
     dataEvents['group'] = [json.loads(x)['group'] if 'group' in json.loads(x).keys() else '' for x in dataEvents['data']]
     dataEvents['user'] = [json.loads(x)['user'] if 'user' in json.loads(x).keys() else '' for x in dataEvents['data']]
     dataEvents['task_id'] = [json.loads(x)['task_id'] if 'task_id' in json.loads(x).keys() else '' for x in dataEvents['data']]
-    
-    # removing those rows where we dont have a group and a user that is not guest
+
+        # removing those rows where we dont have a group and a user that is not guest
     dataEvents = dataEvents[((dataEvents['group'] != '') & (dataEvents['user'] != '') & (dataEvents['user'] != 'guest'))]
     dataEvents['group_user_id'] = dataEvents['group'] + '~' + dataEvents['user']
     dataEvents['group_user_task_id'] = dataEvents['group'] + '~' + dataEvents['user']+'~'+dataEvents['task_id']
 
-         
-    # filtering to only take the group passed as argument
-    if(group != 'all'):
-        dataEvents = dataEvents[dataEvents['group'].isin(group)]
-          
-    # the data is grouped by the necessary variables
-    activity_by_user = dataEvents.groupby(['group_user_id','group', 'user','group_user_task_id','task_id']).agg({'id':'count',
-                                             'type':'nunique'}).reset_index().rename(columns={'id':'events',
-                                                                                              'type':'different_events'})
-    
-    #indicate the index variable
-    activity_by_user.index = activity_by_user['group_user_task_id'].values
-    
+
+        # filtering to only take the group passed as argument
+    #if(group != 'all'):
+    #    dataEvents = dataEvents[dataEvents['group'].isin(group)]
+
+        # the data is grouped by the necessary variables      
+    activity_by_user = dataEvents.groupby(['group_user_id']).agg({'id':'count',
+                                                 'type':'nunique'}).reset_index().rename(columns={'id':'events',
+                                                                                                  'type':'different_events'}) 
+
+
+           # Data Cleaning
+        #dataEvents['time'] = pd.to_datetime(dataEvents['time'])
+    dataEvents = dataEvents.sort_values('time')
+
     typeEvents = ['ws-snapshot','ws-paint', 'ws-rotate_view','ws-move_shape','ws-rotate_shape' ,'ws-scale_shape','ws-create_shape','ws-delete_shape','ws-undo_action','ws-redo_action', 'ws-check_solution']
-    
-   
-        
-    #initialize the metrics
+    manipulationTypeEvents = ['ws-move_shape','ws-rotate_shape' ,'ws-scale_shape','ws-create_shape','ws-delete_shape']
+
+
+
+        #initialize the metrics  
     activity_by_user['completed'] = np.nan
     activity_by_user['active_time'] = np.nan
-    activity_by_user['event'] = np.nan
-    activity_by_user['different_events'] = np.nan
-    activity_by_user['persistence'] = np.nan
-    activity_by_user['percentileAtt'] = np.nan
-    activity_by_user['percentileActiveTime'] = np.nan
-    #activity_by_user['percTimeAbove85'] = np.nan
-   # activity_by_user['percTimeAbove15'] = np.nan
-    #activity_by_user['percAttAbove85'] = np.nan
-    #activity_by_user['percAttAbove15'] = np.nan
-    
+    activity_by_user['n_events'] = np.nan
+    activity_by_user['timestamp'] = np.nan
+
+
     for event in typeEvents:
         activity_by_user[event] = 0
-    
-    #initialize the data structures
-    userFunnelDict = dict()
+
+    #initialize the data structures 
     puzzleEvents = dict()
-    eventsDiff = []
-    eventsDiff_puzzle = dict()
     timePuzzle = dict()
     globalTypesEvents = dict()
-    eventInitial = dict()
-    totalTime = dict()
     n_attempts = dict()
     completados = dict()
-    
+    timestamp = dict()
+
     percentilAtt = dict()
     percentilTime = dict()
-    
+
     percentilAttValue = 90
     percentilTimeValue = 90
-    
-      
+
+    breaksPuzzle = dict()
+    cumAttempts = OrderedDict()
+    puzzleAttempts = dict()
+    userCumAttempts = OrderedDict()
+    puzzleCumAttempts = dict()
+    prevReg = dict()
+    actualAtt = 0
+    prevAtt = 0
+    idComplete = dict()
+    contParc = dict()
+    orden = []
+    ids = []
+    attemptsAux = dict()
+
+    contCheckSol = dict()
+
+    manipulationEvents = dict()
+    userManipulationEvents = dict()
+    contManipulation = 0
+    timeFirstCheck = dict()
+    timeSubExit = dict()
+    timeCheckActual = dict()
+    timeBetweenSub = dict()
+
+
     for user in dataEvents['group_user_id'].unique():
-        
-        # Computing active time
+
+            # Computing active time
         previousEvent = None
         theresHoldActivity = 60 # np.percentile(allDifferences, 98) is 10 seconds
         activeTime = []
-        
+
         user_events = dataEvents[dataEvents['group_user_id'] == user]
         user_puzzle_key = None
+        userParc = None
+        task_id = None
+        initialTime = None
+        prev_id = 1
 
         for enum, event in user_events.iterrows():
-            
-            # If it is the first event
-            if(previousEvent is None):
-                previousEvent = event
-                continue
-            
-            if(event['type'] in ['ws-start_level', 'ws-puzzle_started']):
-                
-                #create id: group+user+task_id
-                user_puzzle_key = event['group'] + '~' + event['user'] + '~' + json.loads(event['data'])['task_id']
-                
-                #if(user_puzzle_key not in eventInitial.keys()):
-                eventInitial[user_puzzle_key] = event['time']
-                       
-                # initialize if the id is new
-                if(user_puzzle_key not in puzzleEvents.keys()):
-                    
-                    percentilAtt[user_puzzle_key] = percentilAttValue
-                    percentilTime[user_puzzle_key] = percentilTimeValue
-                    
-                    completados[user_puzzle_key] = 0
-                    n_attempts[user_puzzle_key] = 0
-                    totalTime[user_puzzle_key] = 0
-                    puzzleEvents[user_puzzle_key]= 1
-                    eventsDiff_puzzle[user_puzzle_key] = []
-                    eventsDiff_puzzle[user_puzzle_key].append(event['type'])
-                    timePuzzle[user_puzzle_key] = 0
-                    globalTypesEvents[user_puzzle_key] = dict()
-                    for ev in typeEvents:
-                        globalTypesEvents[user_puzzle_key][ev]= 0
-            
-            # the event is not final event
-            if(event['type'] not in ['ws-exit_to_menu', 'ws-puzzle_complete', 'ws-create_user', 'ws-login_user']):
-                    
-                    
-                    puzzleEvents[user_puzzle_key] += 1
-                    #add the event type
-                    eventsDiff_puzzle[user_puzzle_key].append(event['type'])
-                    
-                    #calculate the duration of the event
-                    delta_seconds = (event['time'] - previousEvent['time']).total_seconds()
-                    if((delta_seconds < theresHoldActivity)):
-                        timePuzzle[user_puzzle_key] += delta_seconds
 
+                # If it is the first event
+                if(previousEvent is None):
                     previousEvent = event
-                    
-                    #update event counters by type
-                    if(event['type'] in typeEvents):
-                        globalTypesEvents[user_puzzle_key][event['type']] +=1
-                    
-                        
-            # the puzzle ends
-            if(event['type'] in ['ws-exit_to_menu', 'ws-puzzle_complete']):
-                    
-                    
-                    # Total time
-                    if(totalTime[user_puzzle_key] == 0):
-                        totalTime[user_puzzle_key] = (event['time'] - eventInitial[user_puzzle_key]).total_seconds()
-                    else:
-                        totalTime[user_puzzle_key] += (event['time'] - eventInitial[user_puzzle_key]).total_seconds()
-                
-                    puzzleEvents[user_puzzle_key] += 1
-                    
-                    if(event['type'] in ['ws-puzzle_complete']): completados[user_puzzle_key] = 1
-                    
-                    #add the event type
-                    eventsDiff_puzzle[user_puzzle_key].append(event['type'])
-                    
-                    #calculate the duration of the event
-                    delta_seconds = (event['time'] - previousEvent['time']).total_seconds()
-                    if((delta_seconds < theresHoldActivity)):
-                        timePuzzle[user_puzzle_key] += delta_seconds
-                        
+                    continue
 
-                    previousEvent = event
-                    
-                    
-            if(event['type'] == 'ws-check_solution'):
-                if(completados[user_puzzle_key] != 1):
-                    n_attempts[user_puzzle_key] +=1
-    
+                if( event['type'] in ['ws-start_level'] ):
+
+                    #create id: group+user+task_id          
+                    task_id = json.loads(event['data'])['task_id']
+
+                    if(user_puzzle_key not in timeSubExit.keys()):
+                        timeSubExit[user_puzzle_key] = str(0)
+                        timeBetweenSub[user_puzzle_key] = str(0)
 
 
-                
-########################################################################################
+                    if(event['user'] not in userCumAttempts.keys()):
+                        userCumAttempts[event['user']] = 0
+                        actualAtt = 0
+                        attemptsAux[event['user']] = dict()
+                        timeCheckActual[event['user']] = 0
+
+                    if(event['user'] not in userManipulationEvents.keys()):
+                        #print("Se inicializa con ", event['user'])
+                        userManipulationEvents[event['user']] = 0
 
 
-    # Diccionarios para guardar para cada usuario los valores de cada puzzle
+                    #if(user_puzzle_key not in manipulationEvents.keys()):    
+                    #    manipulationEvents[user_puzzle_key] = 0 
+                    #    contManipulation = 0
+
+                    if(task_id not in attemptsAux[event['user']].keys()): attemptsAux[event['user']][task_id]=0
+
+                    user_puzzle_key = event['group'] + '~' + event['user'] + '~' + task_id# + '~' + str(n_attempts[prev_id])
+                    if(user_puzzle_key not in prevReg.keys()): 
+
+                        prevReg[user_puzzle_key] = 1
+                        user_puzzle_key = event['group'] + '~' + event['user'] + '~' + task_id + '~' + '1'
+                        n_attempts[user_puzzle_key] = 1
+                        attemptsAux[event['user']][task_id] = n_attempts[user_puzzle_key]
+
+                    else: 
+
+                        user_puzzle_key = event['group'] + '~' + event['user'] + '~' + task_id + '~' + str(attemptsAux[event['user']][task_id])
+                        n_attempts[user_puzzle_key] = attemptsAux[event['user']][task_id]
+
+
+                    key_split = user_puzzle_key.split('~')
+                    userParc = key_split[1]
+
+                    if(user_puzzle_key not in idComplete.keys()): idComplete[user_puzzle_key] = 0
+
+
+                    if(task_id not in attemptsAux[userParc].keys()): attemptsAux[userParc][task_id]=0
+                    if(user_puzzle_key not in cumAttempts.keys()):
+                        cumAttempts[user_puzzle_key] = 1
+
+
+                    # initialize if the id is new                                                                              
+                    if(user_puzzle_key not in puzzleEvents.keys()):
+
+                        breaksPuzzle[user_puzzle_key] = 0
+                        timestamp[user_puzzle_key] = 0
+                        percentilAtt[user_puzzle_key] = percentilAttValue
+                        percentilTime[user_puzzle_key] = percentilTimeValue
+                        completados[user_puzzle_key] = 0                    
+                        puzzleEvents[user_puzzle_key]= 1
+                        timePuzzle[user_puzzle_key] = 0
+                        contCheckSol[user_puzzle_key] = 0
+                        manipulationEvents[user_puzzle_key] = 0
+                        timeFirstCheck[user_puzzle_key] = 0
+
+                        globalTypesEvents[user_puzzle_key] = dict()
+                        for ev in typeEvents:
+                            globalTypesEvents[user_puzzle_key][ev]= 0
+
+
+
+
+                    #timestamp
+                    if(event['type'] in 'ws-start_level'):
+
+                        timestamp[user_puzzle_key] = event['time']
+                        initialTime = timestamp[user_puzzle_key]
+
+                # the event is not final event
+                if(event['type'] not in ['ws-exit_to_menu' , 'ws-disconnect', 'ws-create_user', 'ws-login_user']): 
+
+
+
+                        if(event['type'] in ['ws-puzzle_complete']): completados[user_puzzle_key] = 1
+
+                        puzzleEvents[user_puzzle_key] += 1                                                                         
+
+                        #calculate the duration of the event                                                                          
+                        delta_seconds = (event['time'] - previousEvent['time']).total_seconds()
+                        if((delta_seconds < theresHoldActivity)):
+                            timePuzzle[user_puzzle_key] += delta_seconds
+
+                        #breaks
+                        if((delta_seconds > 15)):
+                            breaksPuzzle[user_puzzle_key] += 1
+
+                        previousEvent = event 
+
+                        #update event counters by type
+                        if(event['type'] in typeEvents):
+                            globalTypesEvents[user_puzzle_key][event['type']] +=1
+
+                        if(globalTypesEvents[user_puzzle_key]['ws-check_solution'] == 1): timeFirstCheck[user_puzzle_key] = event['time']
+
+
+                        if(event['type'] in manipulationTypeEvents):
+                            manipulationEvents[user_puzzle_key] +=1
+
+                        if(event['type'] == 'ws-check_solution'):
+                            timeCheckActual[event['user']] = event['time']
+                            contCheckSol[user_puzzle_key] +=1
+
+
+                # the puzzle ends        
+                if(event['type'] in ['ws-exit_to_menu', 'ws-disconnect']):
+
+                        idComplete[user_puzzle_key] = 1
+                        puzzleEvents[user_puzzle_key] += 1
+
+
+                        if(completados[user_puzzle_key] == 0 and globalTypesEvents[user_puzzle_key]['ws-check_solution'] > 0):
+                            timeSubExit[user_puzzle_key] = str(round((event['time'] - timeFirstCheck[user_puzzle_key]).total_seconds(), 2))
+                        else: timeSubExit[user_puzzle_key] = 'NA'  
+
+                        if(globalTypesEvents[user_puzzle_key]['ws-check_solution'] == 0): timeBetweenSub[user_puzzle_key] = 'NA'      
+                        else: timeBetweenSub[user_puzzle_key] = str(round(((timeCheckActual[event['user']] - timestamp[user_puzzle_key]) /globalTypesEvents[user_puzzle_key]['ws-check_solution']).total_seconds(), 2))
+
+
+                        #calculate the duration of the event                                                                          
+                        delta_seconds = (event['time'] - previousEvent['time']).total_seconds()
+                        if((delta_seconds < theresHoldActivity)):
+                            timePuzzle[user_puzzle_key] += delta_seconds
+
+                        #breaks
+                        if((delta_seconds > 15)):
+                            breaksPuzzle[user_puzzle_key] += 1
+
+
+                        previousEvent = event
+
+                        userCumAttempts[userParc] +=1
+                        n_attempts[user_puzzle_key] +=1
+                        actualAtt+=1
+                        cumAttempts[user_puzzle_key] = actualAtt
+                        attemptsAux[userParc][task_id] = n_attempts[user_puzzle_key]
+
+                        #manipulationEvents[user_puzzle_key] = userManipulationEvents[event['user']]
+
+
+                        ###########
+
+
     userTime = dict()
     userAtt = dict()
+    userEvent = dict()
 
-    # add the data by group_user_task_id
-    for i in dataEvents['group_user_task_id'].unique():
+
+    for i in puzzleEvents.keys():
+        if(idComplete[i]==0): 
+            continue
         key_split = i.split('~')
         if(key_split[1] not in userTime.keys()):
-            userTime[key_split[1]] = dict()
-            userAtt[key_split[1]] = dict()
+            userTime[i] = 0
+            userAtt[i] = 0
+            userEvent[i] = 0
 
         if(key_split[2] != ''):
-            
-            ######Cambiar con cada clase#######
-            if(key_split[2] in allPuzzles): userAtt[key_split[1]][key_split[2]] = n_attempts[i]
-                                                
-            if(key_split[2] in allPuzzles): userTime[key_split[1]][key_split[2]] = timePuzzle[i]
-                
-                
+
+            if(key_split[2] in allPuzzles): userAtt[i] = contCheckSol[i]
+
+            if(key_split[2] in allPuzzles): userTime[i] = timePuzzle[i]
+
+            if(key_split[2] in allPuzzles): userEvent[i] = puzzleEvents[i]    
+
+
     puzzleTime = dict()
-    puzzleAtt = dict()
-    
-    percentileTimeMax = dict()
-    percentileTimeMin = dict()
-    percentileAttMax = dict()
-    percentileAttMin = dict()
-    
-    checkPersistantAttMax = dict()
-    checkPersistantAttMin = dict()
-    checkPersistantTimeMax = dict()
-    checkPersistantTimeMin = dict()
-    
-    for user in userTime.keys():
-        for puzzle in userTime[user]:
-            if(puzzle not in puzzleTime.keys()):
-                puzzleTime[puzzle] = []
-                puzzleAtt[puzzle] = []
-                
-            puzzleTime[puzzle].append(userTime[user][puzzle])
-            puzzleAtt[puzzle].append(userAtt[user][puzzle])
-            
-            
-    for puzzle in puzzleTime.keys():
-        if(puzzle not in percentileAttMax.keys()):
-            #medianTime[puzzle] = statistics.median(puzzleTime[puzzle])
-            #medianAtt[puzzle] = statistics.median(puzzleAtt[puzzle])
-            percentileTimeMax[puzzle] = np.percentile(puzzleTime[puzzle], 85)
-            percentileTimeMin[puzzle] = np.percentile(puzzleTime[puzzle], 15)
-            percentileAttMax[puzzle] = np.percentile(puzzleAtt[puzzle], 85)
-            percentileAttMin[puzzle] = np.percentile(puzzleAtt[puzzle], 15)
-                 
+    puzzleAtt = dict()  
+    puzzleEvent = dict()
+
+    for i in userTime.keys():
+        #for puzzle in userTime[user]:
+        key_split = i.split('~')
+        if(key_split[2] not in puzzleTime.keys()):
+            puzzleTime[key_split[2]] = []
+            puzzleAtt[key_split[2]] = []
+            puzzleEvent[key_split[2]] = []
+
+        puzzleTime[key_split[2]].append(userTime[i])
+        puzzleAtt[key_split[2]].append(userAtt[i])
+        puzzleEvent[key_split[2]].append(userEvent[i])
+
+
     persistent = dict()
-    boolPersistent = dict()
-    totalAtt = dict()
-    persistentCase = dict()
-    persistentPercent = dict()
-    
     percentileActiveTime = dict()
     percentileAtt = dict()
-    
-    
-    for user in userTime.keys():
-        if(user not in persistent.keys()):
-            persistent[user] = dict()
+    percentileEvent = dict()
+    percentileComposite = dict()
+    averagePercentileComposite = dict()
+    averagePercentilePartial = dict()
 
-    for i in dataEvents['group_user_task_id'].unique():
+    difficultyNumber = dict()
+
+    contNonPer = dict()
+    totalNonPer = dict()
+    contRapid = dict()
+    totalRapid = dict()
+    contUnpro = dict()
+    totalUnpro = dict()
+    contProduct = dict()
+    totalProduct=dict()
+    contNoBehavior = dict()
+    totalNoBehavior = dict()
+    persistantCumPerc = dict()
+
+    cumDifficulty = dict()
+    cumUserPercentage = dict()
+
+    diffPercentage = dict()
+
+    compositeUser = dict()
+
+
+    for i in puzzleEvents.keys():
+        if(idComplete[i]==0): 
+            continue
         key_split = i.split('~')
         if(key_split[2] != ''):
-            
-            
-            percentileActiveTime[i] = stats.percentileofscore(puzzleTime[key_split[2]], userTime[key_split[1]][key_split[2]])
-            percentileAtt[i] = stats.percentileofscore(puzzleAtt[key_split[2]], userAtt[key_split[1]][key_split[2]])
-            
-            
-            
-            if(key_split[1] not in persistentCase.keys()):
-                totalAtt[key_split[1]] = 0
-                persistentCase[key_split[1]] = 0
-                
-            if(i not in checkPersistantAttMax.keys()):
-                checkPersistantAttMax[i] = False
-                checkPersistantAttMin[i] = False
-                checkPersistantTimeMax[i] = False
-                checkPersistantTimeMin[i] = False
-                boolPersistent[i] = 0
-                persistentPercent[i] = 0
 
-                
-            if(userAtt[key_split[1]][key_split[2]] >= percentileAttMax[key_split[2]]):
-                checkPersistantAttMax[i] = True
-            if(userAtt[key_split[1]][key_split[2]] <= percentileAttMin[key_split[2]]):
-                checkPersistantAttMin[i] = True
-                
-            if(userTime[key_split[1]][key_split[2]] >= percentileTimeMax[key_split[2]]):
-                checkPersistantTimeMax[i] = True
-                
-            if(userTime[key_split[1]][key_split[2]] <= percentileTimeMin[key_split[2]]):
-                checkPersistantTimeMin[i] = True
-            
-#            if(userAtt[key_split[1]][key_split[2]] >= medianAtt[key_split[2]]):
-#                checkPersistantAtt[i]=1
-                
-            if(checkPersistantTimeMax[i] == True):
-                if(checkPersistantAttMax[i]== True):
-                    boolPersistent[i] = 1
-            else: boolPersistent[i] = 0
-                
+            #difficulty
+            difficultyNumber[i] = difficultyPuzzles[key_split[2]]
+            if(i not in diffPercentage.keys()): diffPercentage[i] = 0
 
-    for key in boolPersistent.keys():
-        key_split = key.split('~')
-        if(boolPersistent[key] == 1):
-            persistentCase[key_split[1]] +=1
-            totalAtt[key_split[1]] +=1
-            
-        else: totalAtt[key_split[1]] +=1
-    
-    for i in dataEvents['group_user_task_id'].unique():
+            if(key_split[1] not in contNonPer.keys()):
+                contNonPer[key_split[1]] = 0
+                totalNonPer[key_split[1]] =0
+                contRapid[key_split[1]]=0
+                totalRapid[key_split[1]]=0
+                contUnpro[key_split[1]]=0
+                totalUnpro[key_split[1]]=0
+                contProduct[key_split[1]]=0
+                totalProduct[key_split[1]]=0
+                contNoBehavior[key_split[1]]=0
+                totalNoBehavior[key_split[1]]=0
+                cumDifficulty[key_split[1]]=0
+                compositeUser[key_split[1]]= []
+                cumUserPercentage[key_split[1]]=0
+
+            percentileActiveTime[i] = stats.percentileofscore(puzzleTime[key_split[2]], userTime[i])
+            percentileAtt[i] = stats.percentileofscore(puzzleAtt[key_split[2]], userAtt[i], kind='weak')
+            percentileEvent[i] = stats.percentileofscore(puzzleEvent[key_split[2]], userEvent[i], kind='weak')
+            percentileComposite[i] = (stats.percentileofscore(puzzleTime[key_split[2]], userTime[i], kind='weak') + stats.percentileofscore(puzzleAtt[key_split[2]], userAtt[i], kind='weak') + stats.percentileofscore(puzzleEvent[key_split[2]], userEvent[i], kind='weak')) / 3
+            compositeUser[key_split[1]].append(percentileComposite[i])
+
+            cumDifficulty[key_split[1]] = cumDifficulty[key_split[1]] + difficultyPuzzles[key_split[2]]
+            cumUserPercentage[key_split[1]] = cumUserPercentage[key_split[1]] + (difficultyPuzzles[key_split[2]] * percentileComposite[i])
+            diffPercentage[i] = cumUserPercentage[key_split[1]] / cumDifficulty[key_split[1]]
+
+            if(key_split[1] not in averagePercentilePartial.keys()): averagePercentilePartial[key_split[1]]=0
+            if(i not in averagePercentileComposite.keys()): averagePercentileComposite[i]=0
+
+            if(cumAttempts[i] == 0): averagePercentileComposite[i] = averagePercentileComposite[i]     
+            else: 
+
+                averagePercentilePartial[key_split[1]] = averagePercentilePartial[key_split[1]] + percentileComposite[i]
+                averagePercentileComposite[i] = averagePercentilePartial[key_split[1]] / cumAttempts[i]
+
+            if(i not in persistent.keys()):
+                persistent[i] = ''
+
+
+            if(percentileComposite[i] < 25 and completados[i] == 0):
+                persistent[i] = 'NON_PERSISTANT'
+                contNonPer[key_split[1]] +=1
+
+            if(percentileComposite[i] < 25 and completados[i] == 1):
+                persistent[i] = 'RAPID_SOLVER'
+                contRapid[key_split[1]]+=1
+
+            if(percentileComposite[i] > 75 and completados[i] == 1):
+                persistent[i] = 'PRODUCTIVE_PERSISTANCE'
+                contProduct[key_split[1]]+=1
+
+            if(percentileComposite[i] > 75 and completados[i] == 0):
+                persistent[i] = 'UNPRODUCTIVE_PERSISTANCE'   
+                contUnpro[key_split[1]]+=1
+
+            if(percentileComposite[i] >= 25 and percentileComposite[i] <= 75):
+                persistent[i] = 'NO_BEHAVIOR'  
+                contNoBehavior[key_split[1]]+=1
+
+            if(contNonPer[key_split[1]] == 0 or cumAttempts[i]==0): 
+                totalNonPer[key_split[1]] =0
+            else: 
+                totalNonPer[key_split[1]] = 100 * (contNonPer[key_split[1]] / cumAttempts[i])
+
+            if(contRapid[key_split[1]] == 0 or cumAttempts[i]==0): totalRapid[key_split[1]] =0
+            else: totalRapid[key_split[1]] = 100 * (contRapid[key_split[1]] / cumAttempts[i])
+
+            if(contProduct[key_split[1]] == 0 or cumAttempts[i]==0): contProduct[key_split[1]] =0
+            else: totalProduct[key_split[1]] = 100 * (contProduct[key_split[1]] / cumAttempts[i])
+
+            if(contUnpro[key_split[1]] == 0 or cumAttempts[i]==0): contUnpro[key_split[1]] =0
+            else: totalUnpro[key_split[1]] = 100 * (contUnpro[key_split[1]] / cumAttempts[i])
+
+            if(contNoBehavior[key_split[1]] == 0 or cumAttempts[i]==0): contNoBehavior[key_split[1]] =0
+            else: totalNoBehavior[key_split[1]] = 100 * (contNoBehavior[key_split[1]] / cumAttempts[i])
+
+            persistantCumPerc[i] = json.dumps({"NON_PERSISTANT ": round(totalNonPer[key_split[1]],2), "RAPID_SOLVER": round(totalRapid[key_split[1]],2), "PRODUCTIVE_PERSISTANCE": round(totalProduct[key_split[1]],2), "UNPRODUCTIVE_PERSISTANCE": round(totalUnpro[key_split[1]],2), "NO_BEHAVIOR": round(totalNoBehavior[key_split[1]],2) })
+
+
+
+
+    resultPart = 0
+    for i in puzzleEvents.keys():
+        if(idComplete[i]==0): 
+            continue
         key_split = i.split('~')
-        if(key_split[2] != ''):
-        
-            #print("casos persistentes: ",persistentCase[key_split[1]], "casos totales: ", totalAtt[key_split[1]], "Usuario: ", key )
-            persistentPercent[i] = round(( (persistentCase[key_split[1]] / totalAtt[key_split[1]]) * 100),2)
-        
-            
-
-########################################################################################
-                
-    # add the data by group_user_task_id
-    for i in dataEvents['group_user_task_id'].unique():
-        key_split = i.split('~')
-        if(key_split[2] != ''):
-            activity_by_user.at[i, 'event'] = puzzleEvents[i]
-            activity_by_user.at[i, 'different_events'] = len(set(eventsDiff_puzzle[i]))
-            activity_by_user.at[i, 'active_time'] = timePuzzle[i]
-            activity_by_user.at[i, 'percentileAtt'] = percentileAtt[i]
-            activity_by_user.at[i, 'percentileActiveTime'] = percentileActiveTime[i]
+        if(key_split[2] != '' and key_split[1] != '' and i != ''):
+            activity_by_user.at[i, 'user'] = key_split[1]
+            activity_by_user.at[i, 'group'] = key_split[0]
+            activity_by_user.at[i, 'task_id'] = key_split[2]            
+            activity_by_user.at[i, 'n_events'] = puzzleEvents[i]
+            activity_by_user.at[i, 'active_time'] = round(timePuzzle[i],2)
+            activity_by_user.at[i, 'percentileAtt'] = round(percentileAtt[i],2)
+            activity_by_user.at[i, 'percentileActiveTime'] = round(percentileActiveTime[i],2)
+            activity_by_user.at[i, 'percentileEvents'] = round(percentileEvent[i],2)
+            activity_by_user.at[i, 'percentileComposite'] = round(percentileComposite[i],2)
             activity_by_user.at[i, 'completed'] = completados[i]
-            activity_by_user.at[i, 'persistence'] = boolPersistent[i]
-            activity_by_user.at[i, 'percTimeAbove85'] = checkPersistantTimeMax[i]
-            activity_by_user.at[i, 'percTimeBelow15'] = checkPersistantTimeMin[i]
-            activity_by_user.at[i, 'percAttAbove85'] = checkPersistantAttMax[i]
-            activity_by_user.at[i, 'percAttBelow15'] = checkPersistantAttMin[i]
-            activity_by_user.at[i, 'totalUserPersistence'] = persistentPercent[i]
-            
-            
-            
-            for event in typeEvents:
-                activity_by_user.at[i, event] = globalTypesEvents[i][event]
-    
-    
-    #delete row with NaN
-    activity_by_user.dropna(inplace=True)
-    #delete group_user_task_id column
-    activity_by_user.drop(columns=['group_user_task_id'], inplace=True)
-    
-    #data output preparation
-    activity_by_user = pd.DataFrame(activity_by_user, columns=['group', 'user','task_id', 'completed', 'active_time','percentileActiveTime','percTimeAbove85', 'percTimeBelow15', 'ws-check_solution','percentileAtt','percAttAbove85', 'percAttBelow15', 'totalUserPersistence'])
-        
-    return activity_by_user
+            activity_by_user.at[i, 'puzzle_difficulty'] = difficultyNumber[i]
+            activity_by_user.at[i, 'cum_global_puzzle_attempts'] = cumAttempts[i]
+            activity_by_user.at[i, 'cum_this_puzzle_attempt'] = key_split[3]
+            activity_by_user.at[i, 'cum_avg_perc_composite'] = round(averagePercentileComposite[i],2)
+            activity_by_user.at[i, 'cum_avg_persistence'] = persistantCumPerc[i]
+            activity_by_user.at[i, 'timestamp'] = timestamp[i]
+            activity_by_user.at[i, 'persistence'] = persistent[i]
+            activity_by_user.at[i, 'n_breaks'] = breaksPuzzle[i]
+            activity_by_user.at[i, 'n_manipulation_events'] = manipulationEvents[i]
+            activity_by_user.at[i, 'cum_weighted_difficulty_perc_composite'] = round(diffPercentage[i],2)
+            resultPart = stats.percentileofscore(compositeUser[key_split[1]], percentileComposite[i])
+            activity_by_user.at[i, 'percentileCompositeAcrossAttempts'] = round(resultPart,2)
+            if(resultPart >= 75): activity_by_user.at[i, 'persistenceAcrossAttempts'] = 'MORE_PERSISTANCE_THAN_NORMAL'
+            if(resultPart < 75 and resultPart>25): activity_by_user.at[i, 'persistenceAcrossAttempts'] = 'NORMAL_PERSISTANCE'   
+            if(resultPart <= 25): activity_by_user.at[i, 'persistenceAcrossAttempts'] = 'LESS_PERSISTANCE_THAN_NORMAL'            
+            activity_by_user.at[i, 'time_failed_submission_exit'] = timeSubExit[i]
+            activity_by_user.at[i, 'avg_time_between_submissions'] = timeBetweenSub[i]
+            activity_by_user.at[i, 'n_check_solution'] = globalTypesEvents[i]['ws-check_solution']
+            activity_by_user.at[i, 'n_snapshot'] = globalTypesEvents[i]['ws-snapshot']
+            activity_by_user.at[i, 'n_rotate_view'] = globalTypesEvents[i]['ws-rotate_view']
 
+    #delete row with NaN
+    activity_by_user.dropna(subset = ['user'], inplace=True)
+
+
+    #data output preparation                                                                                          
+    activity_by_user = pd.DataFrame(activity_by_user, columns=['group', 'user','task_id','puzzle_difficulty' ,'completed','timestamp', 'active_time','percentileActiveTime','n_events','percentileEvents', 'n_check_solution','percentileAtt','percentileComposite' ,'persistence','n_breaks','n_snapshot','n_rotate_view','n_manipulation_events','time_failed_submission_exit','avg_time_between_submissions','cum_weighted_difficulty_perc_composite','percentileCompositeAcrossAttempts','persistenceAcrossAttempts','cum_global_puzzle_attempts','cum_this_puzzle_attempt','cum_avg_perc_composite', 'cum_avg_persistence'])
+
+    return activity_by_user
 
