@@ -58,7 +58,6 @@ for puzzle in typeMapping:
     desc = puzzle.split("~")
     allPuzzles.append(desc[0])
 
-all_data_collection_urls = ['ginnymason', 'chadsalyer', 'kristinknowlton', 'lori day', 'leja', 'leja2', 'debbiepoull', 'juliamorgan']
 
 def computePersistence(dataEvents, group = 'all'):
 
