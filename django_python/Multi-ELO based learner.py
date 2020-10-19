@@ -313,7 +313,7 @@ def multiTopic_ELO(inputData, Competency, Diff,groupDiff, A_count, Q_count, kcsP
 
 
 
-def run(model, gamma, beta):
+def run(model, gamma, beta, totalData, train_set, test_set):
   
   
   uDict,gDict,qDict,kcDict,kcsPuzzleDict = loadDataset(totalData)
@@ -455,7 +455,7 @@ def run(model, gamma, beta):
   ###################################################################
 
 #  totalData, train_set, test_set = adaptedData(group=['kristinknowlton'])
-#  difficulty_ELO, competency_ELO = run('multiTopic',1.8, 0.05)
+#  difficulty_ELO, competency_ELO = run('multiTopic',1.8, 0.05,totalData, train_set, test_set)
 
   ###################################################################
 
