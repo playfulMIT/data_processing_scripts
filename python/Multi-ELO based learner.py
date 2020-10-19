@@ -440,7 +440,7 @@ def run(model, gamma, beta,totalData, train_set, test_set):
 
 # USAGE EXAMPLE
 # totalData, train_set, test_set = adaptedData(dataEvents)
-# difficulty_ELO, competency_ELO = run('multiTopic',1.8, 0.05)
+# difficulty_ELO, competency_ELO = run('multiTopic',1.8, 0.05,totalData, train_set, test_set)
 
 ############################################################
 
