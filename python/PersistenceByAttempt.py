@@ -11,7 +11,7 @@ from datetime import timedelta
 # USAGE EXAMPLE
 # dataEvents = pd.read_csv('/Users/jruipere/Dropbox (MIT)/Game-based Assessment/data_processing_scripts/data/anonymized_dataset.csv', sep=";")
 # dataEvents = pd.read_csv('/Users/pedroantonio/Desktop/data/anonymized_dataset.csv', sep=";")
-# lelevelsOfActivity = computeLevelsOfActivity(dataEvents)
+# lelevelsOfActivity = computePersistenceByAttempt(dataEvents)
 
 # mapping to positions
 
@@ -59,7 +59,7 @@ for puzzle in typeMapping:
     allPuzzles.append(desc[0])
 
 
-def computePersistence(dataEvents, group = 'all'):
+def computePersistenceByAttempt(dataEvents, group = 'all'):
 
     dataEvents['time'] = pd.to_datetime(dataEvents['time'])
     dataEvents = dataEvents.sort_values('time')

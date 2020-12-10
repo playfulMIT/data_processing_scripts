@@ -56,7 +56,7 @@ for puzzle in typeMapping:
 
 all_data_collection_urls = ['ginnymason', 'chadsalyer', 'kristinknowlton', 'lori day', 'leja', 'leja2', 'debbiepoull', 'juliamorgan']
 
-def computePersistence(group = 'all'):
+def computePersistenceByAttempt(group = 'all'):
 
     if group == 'all' : 
         toFilter = all_data_collection_urls
