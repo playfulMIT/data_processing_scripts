@@ -11,7 +11,7 @@ from datetime import timedelta
 # USAGE EXAMPLE
 # dataEvents = pd.read_csv('/Users/jruipere/Dropbox (MIT)/Game-based Assessment/data_processing_scripts/data/anonymized_dataset.csv', sep=";")
 # dataEvents = pd.read_csv('/Users/pedroantonio/Desktop/data/anonymized_dataset.csv', sep=";")
-# lelevelsOfActivity = computePersistenceByAttempt(dataEvents)
+# persistence = computePersistenceByAttempt(dataEvents)
 
 # mapping to positions
 
