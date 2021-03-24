@@ -631,338 +631,339 @@ def multiTopic_ELO(inputData, Competency, Diff, A_count, Q_count, kcsPuzzleDict 
 
 
 def run(gamma, beta, output, totalData, train_set, test_set):
-   
-   
-   uDict,gDict,qDict,kcDict,kcsPuzzleDict = loadDataset(totalData)
-   competency_ELO = pd.DataFrame()
-   competency_ELO_PCA = pd.DataFrame()
-   difficulty_ELO = pd.DataFrame()
-
-
-
-   # First stage
-   question_difficulty_array = dict()
-   question_counter_array = dict()
-
-
-   for q in qDict.keys():
-       if(q not in question_difficulty_array.keys()):
-           question_difficulty_array[q]=dict()
-           question_counter_array[q]=dict()
-           question_counter_array[q]=0
-
-       for k in kcDict.keys():
-           question_difficulty_array[q][k]=0
-
-
-   learner_competency_array = dict()
-   response_counter_array = dict()
-   for user in uDict.keys():
-       if(user not in learner_competency_array.keys()):
-           learner_competency_array[user]=dict()
-           response_counter_array[user]=dict()
-           response_counter_array[user]=0
-       for k in kcDict.keys():
-           learner_competency_array[user][k]=0
-
-   # Array with the difficulty array
-   arrayDiff = arrayDifficulty(totalData, learner_competency_array, question_difficulty_array, response_counter_array, question_counter_array, kcsPuzzleDict,gDict,gamma, beta)
-
-   puzzleDiffMean = dict()
-   #arrayDiffComp = dict()
-   #arrayDiffComp = arrayDiff
-   for puzzle in qDict.keys():
-       puzzleDiffMean[puzzle] = dict()
-       for k in kcsPuzzleDict[puzzle]:
-           puzzleDiffMean[puzzle][k] = 0
-           if(len(arrayDiff[puzzle][k]) > 30):
-               for i in range(10):
-                   arrayDiff[puzzle][k].pop(i)
-                   arrayDiff[puzzle][k].pop(-i)
-                   
-           puzzleDiffMean[puzzle][k] = statistics.mean(arrayDiff[puzzle][k])
-
-
-   # Second Stage
-   
-   if(output == 'metrics'):
-       
-       question_counter_Model = dict()
-       for q in qDict.keys():
-           if(q not in question_counter_Model.keys()):
-               question_counter_Model[q]=dict()
-               question_counter_Model[q]=0
-
-
-
-       learner_competency_Model = dict()
-       response_counter_Model = dict()
-       for user in uDict.keys():
-           if(user not in learner_competency_Model.keys()):
-               learner_competency_Model[user]=dict()
-               response_counter_Model[user]=dict()
-               response_counter_Model[user]=0
-           for k in kcDict.keys():
-               learner_competency_Model[user][k]=0
-
-       learner_competency_train, response_counter_train, question_counter_train, prob_train, ans_train, competencyPartial_train, probUser_train, userPuzzles_train, completedPartialData, probUserTrain, ansUserTrain, contPuzzlesUser_Train = multiTopic_ELO(train_set, learner_competency_Model, puzzleDiffMean, response_counter_Model, question_counter_Model, kcsPuzzleDict,gDict,gamma, beta)
-       learner_competency_test ,response_counter_test, question_counter_test, prob_test, ans_test,competencyPartial_test, probUser_test, userPuzzles_test, completedPartialData, probUserT, ansUserT, contPuzzlesUser_Test = multiTopic_ELO(test_set, learner_competency_train, puzzleDiffMean, response_counter_train, question_counter_train, kcsPuzzleDict,gDict,gamma, beta)
-
-
-
-       # Quality metrics
-       group_prob_test = []
-       contUser =0
-       contT = 0
-       for user in prob_test.keys():
-           contUser+=1
-           for task in prob_test[user].keys():
-               contT+=1
-               group_prob_test.append(prob_test[user][task])
-
-       group_ans_test = []
-       for user in ans_test.keys():
-           for task in ans_test[user].keys():
-               group_ans_test.append(ans_test[user][task])
-
-
-       accuracy = accuracyFunction(group_ans_test, group_prob_test)
-       auc = auc_roc(group_ans_test, group_prob_test)
-       kappa = get_cohenKappa(group_ans_test, group_prob_test)
-
-       return accuracy, auc, kappa
-       
-       
-       
-   else:
-
-
-       # Data for step by step data output
-       question_counter = dict()
-
-       for q in qDict.keys():
-           if(q not in question_counter.keys()):
-               question_counter[q]=dict()
-               question_counter[q]=0
-
-       learner_competency = dict()
-       response_counter = dict()
-       for user in uDict.keys():
-           if(user not in learner_competency.keys()):
-               learner_competency[user]=dict()
-               response_counter[user]=dict()
-               response_counter[user]=0
-           for k in kcDict.keys():
-               learner_competency[user][k]=0
+    
+    
+    uDict,gDict,qDict,kcDict,kcsPuzzleDict = loadDataset(totalData)
+    competency_ELO = pd.DataFrame()
+    competency_ELO_PCA = pd.DataFrame()
+    difficulty_ELO = pd.DataFrame()    
+
+
+
+    # First stage
+    question_difficulty_array = dict() 
+    question_counter_array = dict() 
+
+
+    for q in qDict.keys():
+        if(q not in question_difficulty_array.keys()):
+            question_difficulty_array[q]=dict()
+            question_counter_array[q]=dict()
+            question_counter_array[q]=0
+
+        for k in kcDict.keys():
+            question_difficulty_array[q][k]=0   
+
+
+    learner_competency_array = dict() 
+    response_counter_array = dict() 
+    for user in uDict.keys():
+        if(user not in learner_competency_array.keys()):
+            learner_competency_array[user]=dict()
+            response_counter_array[user]=dict()
+            response_counter_array[user]=0
+        for k in kcDict.keys():
+            learner_competency_array[user][k]=0
+
+    # Array with the difficulty array        
+    arrayDiff = arrayDifficulty(totalData, learner_competency_array, question_difficulty_array, response_counter_array, question_counter_array, kcsPuzzleDict,gDict,gamma, beta)
+
+    puzzleDiffMean = dict()
+    #arrayDiffComp = dict()
+    #arrayDiffComp = arrayDiff
+    for puzzle in qDict.keys():
+        puzzleDiffMean[puzzle] = dict()
+        for k in kcsPuzzleDict[puzzle]:
+            puzzleDiffMean[puzzle][k] = 0
+            if(len(arrayDiff[puzzle][k]) > 30):
+                for i in range(10):
+                    arrayDiff[puzzle][k].pop(i)
+                    arrayDiff[puzzle][k].pop(-i)
+                    
+            puzzleDiffMean[puzzle][k] = statistics.mean(arrayDiff[puzzle][k])
+
+
+    # Second Stage
+    
+    if(output == 'metrics'):
+        
+        question_counter_Model = dict() 
+        for q in qDict.keys():
+            if(q not in question_counter_Model.keys()):
+                question_counter_Model[q]=dict()
+                question_counter_Model[q]=0
+ 
+
+
+        learner_competency_Model = dict() 
+        response_counter_Model = dict()
+        for user in uDict.keys():
+            if(user not in learner_competency_Model.keys()):
+                learner_competency_Model[user]=dict()
+                response_counter_Model[user]=dict()
+                response_counter_Model[user]=0
+            for k in kcDict.keys():
+                learner_competency_Model[user][k]=0
+
+        learner_competency_train, response_counter_train, question_counter_train, prob_train, ans_train, competencyPartial_train, probUser_train, userPuzzles_train, completedPartialData, probUserTrain, ansUserTrain, contPuzzlesUser_Train = multiTopic_ELO(train_set, learner_competency_Model, puzzleDiffMean, response_counter_Model, question_counter_Model, kcsPuzzleDict,gDict,gamma, beta)
+        learner_competency_test ,response_counter_test, question_counter_test, prob_test, ans_test,competencyPartial_test, probUser_test, userPuzzles_test, completedPartialData, probUserT, ansUserT, contPuzzlesUser_Test = multiTopic_ELO(test_set, learner_competency_train, puzzleDiffMean, response_counter_train, question_counter_train, kcsPuzzleDict,gDict,gamma, beta)
+
+
+
+        # Quality metrics
+        group_prob_test = []
+        contUser =0
+        contT = 0
+        for user in prob_test.keys():
+            contUser+=1
+            for task in prob_test[user].keys():
+                contT+=1
+                group_prob_test.append(prob_test[user][task])
+
+        group_ans_test = []
+        for user in ans_test.keys():
+            for task in ans_test[user].keys():
+                group_ans_test.append(ans_test[user][task])        
+
+
+        accuracy = accuracyFunction(group_ans_test, group_prob_test)    
+        auc = auc_roc(group_ans_test, group_prob_test)
+        kappa = get_cohenKappa(group_ans_test, group_prob_test)
+
+        return accuracy, auc, kappa
+        
+        
+        
+    else: 
+
+
+        # Data for step by step data output
+        question_counter = dict() 
+
+        for q in qDict.keys():
+            if(q not in question_counter.keys()):
+                question_counter[q]=dict()
+                question_counter[q]=0
+
+        learner_competency = dict() 
+        response_counter = dict() 
+        for user in uDict.keys():
+            if(user not in learner_competency.keys()):
+                learner_competency[user]=dict()
+                response_counter[user]=dict()
+                response_counter[user]=0
+            for k in kcDict.keys():
+                learner_competency[user][k]=0
 
-       # Multi-ELO function
-       learner_competency_total, response_counter_total, question_counter_total, prob_total, ans_total, competencyPartial_total, probUser_total, userPuzzles_total, completedPartialData, probUserTest, ansUserTest, contPuzzlesUser = multiTopic_ELO(totalData, learner_competency, puzzleDiffMean, response_counter, question_counter, kcsPuzzleDict,gDict,gamma, beta)
+        # Multi-ELO function        
+        learner_competency_total, response_counter_total, question_counter_total, prob_total, ans_total, competencyPartial_total, probUser_total, userPuzzles_total, completedPartialData, probUserTest, ansUserTest, contPuzzlesUser = multiTopic_ELO(totalData, learner_competency, puzzleDiffMean, response_counter, question_counter, kcsPuzzleDict,gDict,gamma, beta)
 
 
-       totalCompetencyGMD = []
-       totalCompetencyCO5 = []
-       totalCompetencyCO6 = []
-       totalCompetencyMG1 = []
+        totalCompetencyGMD = []
+        totalCompetencyCO5 = []
+        totalCompetencyCO6 = []
+        totalCompetencyMG1 = []
 
 
-       for user in learner_competency.keys():
-           for x in learner_competency[user]:
-               if(x == 'GMD.4'):
-                   totalCompetencyGMD.append(learner_competency[user][x])
-               elif(x == 'CO.5'):
-                   totalCompetencyCO5.append(learner_competency[user][x])
-               elif(x == 'CO.6'):
-                   totalCompetencyCO6.append(learner_competency[user][x])
-               elif(x == 'MG.1'):
-                   totalCompetencyMG1.append(learner_competency[user][x])
-
-
-       minCompetencyGMD = min(totalCompetencyGMD)
-       maxCompetencyGMD = max(totalCompetencyGMD)
-
-       minCompetencyCO5 = min(totalCompetencyCO5)
-       maxCompetencyCO5 = max(totalCompetencyCO5)
-
-       minCompetencyCO6 = min(totalCompetencyCO6)
-       maxCompetencyCO6 = max(totalCompetencyCO6)
-
-       minCompetencyMG1 = min(totalCompetencyMG1)
-       maxCompetencyMG1 = max(totalCompetencyMG1)
-
-       normalized_learner_competency = dict()
-       normalized_global_competency = dict()
-       for user in learner_competency.keys():
-           normalized_learner_competency[user]=dict()
-           normalized_global_competency[user] = 0
-           for x in learner_competency[user]:
-               if(x == 'GMD.4'):
-                   normalized_learner_competency[user][x]= (learner_competency[user][x]- minCompetencyGMD)/(maxCompetencyGMD-minCompetencyGMD)
-                   normalized_global_competency[user] += normalized_learner_competency[user][x]
-
-               elif(x == 'CO.5'):
-                   normalized_learner_competency[user][x]= (learner_competency[user][x]- minCompetencyCO5)/(maxCompetencyCO5-minCompetencyCO5)
-                   normalized_global_competency[user] += normalized_learner_competency[user][x]
-
-               elif(x == 'CO.6'):
-                   normalized_learner_competency[user][x]= (learner_competency[user][x]- minCompetencyCO6)/(maxCompetencyCO6-minCompetencyCO6)
-                   normalized_global_competency[user] += normalized_learner_competency[user][x]
-
-               elif(x == 'MG.1'):
-                   normalized_learner_competency[user][x]= (learner_competency[user][x]- minCompetencyMG1)/(maxCompetencyMG1-minCompetencyMG1)
-                   normalized_global_competency[user] += normalized_learner_competency[user][x]
-
-
-       for user in normalized_global_competency.keys():
-           normalized_global_competency[user] = normalized_global_competency[user]/len(kcs)
-
-
-       # Normalization Difficulty
-       totalDiffGMD = []
-       totalDiffCO5 = []
-       totalDiffCO6 = []
-       totalDiffMG1 = []
-
-       for puzzle in puzzleDiffMean.keys():
-           for x in puzzleDiffMean[puzzle]:
-               if(x == 'GMD.4'):
-                   totalDiffGMD.append(puzzleDiffMean[puzzle][x])
-               elif(x == 'CO.5'):
-                   totalDiffCO5.append(puzzleDiffMean[puzzle][x])
-               elif(x == 'CO.6'):
-                   totalDiffCO6.append(puzzleDiffMean[puzzle][x])
-               elif(x == 'MG.1'):
-                   totalDiffMG1.append(puzzleDiffMean[puzzle][x])
-
-
-       minDiffGMD = min(totalDiffGMD)
-       maxDiffGMD = max(totalDiffGMD)
-
-       minDiffCO5 = min(totalDiffCO5)
-       maxDiffCO5 = max(totalDiffCO5)
-
-       minDiffCO6 = min(totalDiffCO6)
-       maxDiffCO6 = max(totalDiffCO6)
-
-       minDiffMG1 = min(totalDiffMG1)
-       maxDiffMG1 = max(totalDiffMG1)
-
-       normalized_question_difficulty = dict()
-
-       for puzzle in puzzleDiffMean.keys():
-           normalized_question_difficulty[puzzle]=dict()
-           for x in puzzleDiffMean[puzzle]:
-               if(x == 'GMD.4'):
-                   normalized_question_difficulty[puzzle][x]= (puzzleDiffMean[puzzle][x]- minDiffGMD)/(maxDiffGMD-minDiffGMD)
-
-               elif(x == 'CO.5'):
-                   normalized_question_difficulty[puzzle][x]= (puzzleDiffMean[puzzle][x]- minDiffCO5)/(maxDiffCO5-minDiffCO5)
-
-               elif(x == 'CO.6'):
-                   normalized_question_difficulty[puzzle][x]= (puzzleDiffMean[puzzle][x]- minDiffCO6)/(maxDiffCO6-minDiffCO6)
-
-               elif(x == 'MG.1'):
-                   normalized_question_difficulty[puzzle][x]= (puzzleDiffMean[puzzle][x]- minDiffMG1)/(maxDiffMG1-minDiffMG1)
-
-       if(output == 'step by step'):
-
-           for i in completedPartialData.keys():
-                   key_split = i.split('~')
-                   competency_ELO.at[i, 'group'] = gDict[key_split[0]]
-                   competency_ELO.at[i, 'user'] = key_split[0]
-                   competency_ELO.at[i, 'task_id'] = key_split[1]
-                   competency_ELO.at[i, 'kc'] = key_split[2]
-                   competency_ELO.at[i, 'final_kc_competency'] = round(normalized_learner_competency[key_split[0]][key_split[2]],3)
-                   competency_ELO.at[i, 'final_global_competency'] = round(normalized_global_competency[key_split[0]],3)
-                   competency_ELO.at[i, 'current_competency'] = key_split[3]
-                   competency_ELO.at[i, 'probability'] = round(completedPartialData[i]['prob'],3)
-                   competency_ELO.at[i, 'correct'] = completedPartialData[i]['correct']
-                   competency_ELO.at[i, 'kcs_importance'] = round(completedPartialData[i]['kcs importance'],3)
-                   competency_ELO.at[i, 'difficulty'] = round(puzzleDiffMean[key_split[1]][key_split[2]],3)
-                   competency_ELO.at[i, 'weight_att'] = round(completedPartialData[i]['Weight'],3)
-                   competency_ELO.at[i, 'timestamp'] = completedPartialData[i]['timestamp']
-                   if(len(ansUserTest[key_split[0]]) > 0): competency_ELO.at[i, 'accuracy'] = str(round(accuracyFunction(ansUserTest[key_split[0]], probUserTest[key_split[0]]), 3))
-                   else: competency_ELO.at[i, 'accuracy'] = str(np.nan)
-                   competency_ELO.at[i, 'n_puzzles_attempted'] = len(contPuzzlesUser[key_split[0]])
-                   competency_ELO.at[i, 'p_attempted'] = round((len(contPuzzlesUser[key_split[0]]) * 100)/(len(intermediatePuzzles) + len(advancedPuzzles)), 3)
-                   competency_ELO.at[i, 'change_competency'] = round(completedPartialData[i]['changeComp'],3)
-                   competency_ELO.at[i, 'complete_change_comp'] = round(completedPartialData[i]['complete_change_comp'],3)
-                   #competency_ELO.at[i, 'change_difficulty'] = round(completedPartialData[i]['changeDiff'],3)
-
-           #data output preparation
-           competency_ELO = pd.DataFrame(competency_ELO, columns = ['group','user','task_id', 'timestamp','kc','kcs_importance','final_kc_competency', 'final_global_competency','current_competency','change_competency','weight_att','complete_change_comp', 'probability', 'correct','accuracy','n_puzzles_attempted','p_attempted', 'difficulty'])
-
-           return competency_ELO
-
-       
-       if(output == 'standard'):
-           
-           # Data for final data output (difficulty)
-           concatedTaskKc = dict()
-
-           for q in qDict.keys():
-               for k in kcsPuzzleDict[q].keys():
-                   concatedTaskKc[q+'~'+k] = 0
-                   
-
-           for i in concatedTaskKc.keys():
-               key_split = i.split('~')
-               difficulty_ELO.at[i, 'task_id'] = key_split[0]
-               difficulty_ELO.at[i, 'kc'] = key_split[1]
-               difficulty_ELO.at[i, 'difficulty'] = round(puzzleDiffMean[key_split[0]][key_split[1]],3)
-               difficulty_ELO.at[i, 'normalized_difficulty'] = round(normalized_question_difficulty[key_split[0]][key_split[1]],3)
-
-
-
-           idComplet = dict()
-           for g in gDict.values():
-               for u in gDict.keys():
-                   for k in kcs:
-                       iCom = g+'~'+u+'~'+k
-                       idComplet[iCom] = 0
-
-           for i in idComplet.keys():
-               key_split = i.split('~')
-               competency_ELO.at[i, 'group'] = key_split[0]
-               competency_ELO.at[i, 'user'] = key_split[1]
-               competency_ELO.at[i, 'kc'] = key_split[2]
-               competency_ELO.at[i, 'competency'] = round(normalized_learner_competency[key_split[1]][key_split[2]],3)
-               if(len(ansUserTest[key_split[1]]) > 0): competency_ELO_PCA.at[i, 'accuracy'] = str(round(accuracyFunction(ansUserTest[key_split[1]], probUserTest[key_split[1]]), 3))
-               else: competency_ELO_PCA.at[i, 'accuracy'] = np.nan
-               if(len(ansUserTest[key_split[1]]) > 0): competency_ELO.at[i, 'accuracy'] = str(round(accuracyFunction(ansUserTest[key_split[1]], probUserTest[key_split[1]]), 3))
-               else: competency_ELO.at[i, 'accuracy'] = str(np.nan)
-               competency_ELO.at[i, 'n_puzzles_attempted'] = len(contPuzzlesUser[key_split[1]])
-               competency_ELO_PCA.at[i, 'n_puzzles_attempted'] = len(contPuzzlesUser[key_split[1]])
-               competency_ELO.at[i, 'p_attempted'] = round((len(contPuzzlesUser[key_split[1]]) * 100)/(len(intermediatePuzzles) + len(advancedPuzzles)), 3)
-           
-           # Replace NaN values by 0
-           competency_ELO_PCA['accuracy'] = competency_ELO_PCA['accuracy'].replace(np.nan, 0)
-           # Data preprocesing to match variable weights
-           scaler = StandardScaler()
-           scaler.fit(competency_ELO_PCA)
-           scaled_data = scaler.transform(competency_ELO_PCA)
-           
-           # PCA object and look for the main variables
-           pca = PCA(n_components=1)
-           pca.fit(scaled_data)
-           # Dimensionality reduction
-           x_pca = pca.transform(scaled_data)
-           
-           # Re-enter the NaN values
-           x_pca = np.round(np.where(x_pca == min(x_pca), np.nan, x_pca),3)
-           
-           # Normalized
-           x_pca_normalized = np.round(normalized_PCA(x_pca),3)
-           
-           #data output preparation
-           difficulty_ELO = pd.DataFrame(difficulty_ELO, columns = ['task_id','kc', 'difficulty','normalized_difficulty'])
-           competency_ELO = pd.DataFrame(competency_ELO, columns = ['group','user','kc', 'competency', 'accuracy','n_puzzles_attempted','p_attempted'])
-           
-
-           competency_ELO['pca'] = x_pca.astype(str)
-           competency_ELO['pca_normalized'] = x_pca_normalized.astype(str)
-           
-           
-           return competency_ELO, difficulty_ELO
+        for user in learner_competency.keys():
+            for x in learner_competency[user]:
+                if(x == 'GMD.4'):
+                    totalCompetencyGMD.append(learner_competency[user][x])
+                elif(x == 'CO.5'):
+                    totalCompetencyCO5.append(learner_competency[user][x]) 
+                elif(x == 'CO.6'):
+                    totalCompetencyCO6.append(learner_competency[user][x])
+                elif(x == 'MG.1'):
+                    totalCompetencyMG1.append(learner_competency[user][x])    
+
+
+        minCompetencyGMD = min(totalCompetencyGMD)   
+        maxCompetencyGMD = max(totalCompetencyGMD)
+
+        minCompetencyCO5 = min(totalCompetencyCO5)   
+        maxCompetencyCO5 = max(totalCompetencyCO5)
+
+        minCompetencyCO6 = min(totalCompetencyCO6)   
+        maxCompetencyCO6 = max(totalCompetencyCO6)
+
+        minCompetencyMG1 = min(totalCompetencyMG1)   
+        maxCompetencyMG1 = max(totalCompetencyMG1)
+
+        normalized_learner_competency = dict()
+        normalized_global_competency = dict()
+        for user in learner_competency.keys():
+            normalized_learner_competency[user]=dict()
+            normalized_global_competency[user] = 0
+            for x in learner_competency[user]:
+                if(x == 'GMD.4'):
+                    normalized_learner_competency[user][x]= (learner_competency[user][x]- minCompetencyGMD)/(maxCompetencyGMD-minCompetencyGMD)
+                    normalized_global_competency[user] += normalized_learner_competency[user][x]
+
+                elif(x == 'CO.5'):
+                    normalized_learner_competency[user][x]= (learner_competency[user][x]- minCompetencyCO5)/(maxCompetencyCO5-minCompetencyCO5)
+                    normalized_global_competency[user] += normalized_learner_competency[user][x]
+
+                elif(x == 'CO.6'):
+                    normalized_learner_competency[user][x]= (learner_competency[user][x]- minCompetencyCO6)/(maxCompetencyCO6-minCompetencyCO6)
+                    normalized_global_competency[user] += normalized_learner_competency[user][x]
+
+                elif(x == 'MG.1'):
+                    normalized_learner_competency[user][x]= (learner_competency[user][x]- minCompetencyMG1)/(maxCompetencyMG1-minCompetencyMG1)
+                    normalized_global_competency[user] += normalized_learner_competency[user][x]
+
+
+        for user in normalized_global_competency.keys():
+            normalized_global_competency[user] = normalized_global_competency[user]/len(kcs)
+
+
+        # Normalization Difficulty    
+        totalDiffGMD = []
+        totalDiffCO5 = []
+        totalDiffCO6 = []
+        totalDiffMG1 = []
+
+        for puzzle in puzzleDiffMean.keys():
+            for x in puzzleDiffMean[puzzle]:
+                if(x == 'GMD.4'):
+                    totalDiffGMD.append(puzzleDiffMean[puzzle][x])
+                elif(x == 'CO.5'):
+                    totalDiffCO5.append(puzzleDiffMean[puzzle][x]) 
+                elif(x == 'CO.6'):
+                    totalDiffCO6.append(puzzleDiffMean[puzzle][x])
+                elif(x == 'MG.1'):
+                    totalDiffMG1.append(puzzleDiffMean[puzzle][x])    
+
+
+        minDiffGMD = min(totalDiffGMD)   
+        maxDiffGMD = max(totalDiffGMD)
+
+        minDiffCO5 = min(totalDiffCO5)   
+        maxDiffCO5 = max(totalDiffCO5)
+
+        minDiffCO6 = min(totalDiffCO6)   
+        maxDiffCO6 = max(totalDiffCO6)
+
+        minDiffMG1 = min(totalDiffMG1)   
+        maxDiffMG1 = max(totalDiffMG1)
+
+        normalized_question_difficulty = dict()
+
+        for puzzle in puzzleDiffMean.keys():
+            normalized_question_difficulty[puzzle]=dict()
+            for x in puzzleDiffMean[puzzle]:
+                if(x == 'GMD.4'):
+                    normalized_question_difficulty[puzzle][x]= (puzzleDiffMean[puzzle][x]- minDiffGMD)/(maxDiffGMD-minDiffGMD)
+
+                elif(x == 'CO.5'):
+                    normalized_question_difficulty[puzzle][x]= (puzzleDiffMean[puzzle][x]- minDiffCO5)/(maxDiffCO5-minDiffCO5)
+
+                elif(x == 'CO.6'):
+                    normalized_question_difficulty[puzzle][x]= (puzzleDiffMean[puzzle][x]- minDiffCO6)/(maxDiffCO6-minDiffCO6)
+
+                elif(x == 'MG.1'):
+                    normalized_question_difficulty[puzzle][x]= (puzzleDiffMean[puzzle][x]- minDiffMG1)/(maxDiffMG1-minDiffMG1)
+
+        if(output == 'step by step'):
+
+            for i in completedPartialData.keys():
+                    key_split = i.split('~')
+                    competency_ELO.at[i, 'group'] = gDict[key_split[0]]    
+                    competency_ELO.at[i, 'user'] = key_split[0] 
+                    competency_ELO.at[i, 'task_id'] = key_split[1]
+                    competency_ELO.at[i, 'kc'] = key_split[2]
+                    competency_ELO.at[i, 'final_kc_competency'] = round(normalized_learner_competency[key_split[0]][key_split[2]],3)
+                    competency_ELO.at[i, 'final_global_competency'] = round(normalized_global_competency[key_split[0]],3)
+                    competency_ELO.at[i, 'current_competency'] = key_split[3]
+                    competency_ELO.at[i, 'probability'] = round(completedPartialData[i]['prob'],3)
+                    competency_ELO.at[i, 'correct'] = completedPartialData[i]['correct']
+                    competency_ELO.at[i, 'kcs_importance'] = round(completedPartialData[i]['kcs importance'],3)
+                    competency_ELO.at[i, 'difficulty'] = round(puzzleDiffMean[key_split[1]][key_split[2]],3)
+                    competency_ELO.at[i, 'weight_att'] = round(completedPartialData[i]['Weight'],3)
+                    competency_ELO.at[i, 'timestamp'] = completedPartialData[i]['timestamp']
+                    if(len(ansUserTest[key_split[0]]) > 0): competency_ELO.at[i, 'accuracy'] = str(round(accuracyFunction(ansUserTest[key_split[0]], probUserTest[key_split[0]]), 3)) 
+                    else: competency_ELO.at[i, 'accuracy'] = str(np.nan)                    
+                    competency_ELO.at[i, 'n_puzzles_attempted'] = len(contPuzzlesUser[key_split[0]])
+                    competency_ELO.at[i, 'p_attempted'] = round((len(contPuzzlesUser[key_split[0]]) * 100)/((len(intermediatePuzzles) + len(advancedPuzzles))-1), 3)
+                    competency_ELO.at[i, 'change_competency'] = round(completedPartialData[i]['changeComp'],3)
+                    competency_ELO.at[i, 'complete_change_comp'] = round(completedPartialData[i]['complete_change_comp'],3)
+                    #competency_ELO.at[i, 'change_difficulty'] = round(completedPartialData[i]['changeDiff'],3)
+
+            #data output preparation  
+            competency_ELO = pd.DataFrame(competency_ELO, columns = ['group','user','task_id', 'timestamp','kc','kcs_importance','final_kc_competency', 'final_global_competency','current_competency','change_competency','weight_att','complete_change_comp', 'probability', 'correct','accuracy','n_puzzles_attempted','p_attempted', 'difficulty'])
+
+            return competency_ELO
+
+        
+        if(output == 'standard'): 
+            
+            # Data for final data output (difficulty)
+            concatedTaskKc = dict()
+
+            for q in qDict.keys():
+                for k in kcsPuzzleDict[q].keys():
+                    concatedTaskKc[q+'~'+k] = 0
+                    
+
+            for i in concatedTaskKc.keys():
+                key_split = i.split('~')
+                difficulty_ELO.at[i, 'task_id'] = key_split[0]
+                difficulty_ELO.at[i, 'kc'] = key_split[1]
+                difficulty_ELO.at[i, 'difficulty'] = round(puzzleDiffMean[key_split[0]][key_split[1]],3)  
+                difficulty_ELO.at[i, 'normalized_difficulty'] = round(normalized_question_difficulty[key_split[0]][key_split[1]],3)               
+
+
+
+            idComplet = dict()
+            for g in gDict.values():
+                for u in gDict.keys():
+                    for k in kcs:
+                        iCom = g+'~'+u+'~'+k
+                        idComplet[iCom] = 0
+
+            for i in idComplet.keys():
+                key_split = i.split('~')
+                competency_ELO.at[i, 'group'] = key_split[0]    
+                competency_ELO.at[i, 'user'] = key_split[1]    
+                competency_ELO.at[i, 'kc'] = key_split[2]
+                competency_ELO.at[i, 'competency'] = round(normalized_learner_competency[key_split[1]][key_split[2]],3) 
+                if(len(ansUserTest[key_split[1]]) > 0): competency_ELO_PCA.at[i, 'accuracy'] = str(round(accuracyFunction(ansUserTest[key_split[1]], probUserTest[key_split[1]]), 3)) 
+                else: competency_ELO_PCA.at[i, 'accuracy'] = np.nan
+                if(len(ansUserTest[key_split[1]]) > 0): competency_ELO.at[i, 'accuracy'] = str(round(accuracyFunction(ansUserTest[key_split[1]], probUserTest[key_split[1]]), 3)) 
+                else: competency_ELO.at[i, 'accuracy'] = str(np.nan)
+                competency_ELO.at[i, 'n_puzzles_attempted'] = len(contPuzzlesUser[key_split[1]])
+                competency_ELO_PCA.at[i, 'n_puzzles_attempted'] = len(contPuzzlesUser[key_split[1]])
+                competency_ELO.at[i, 'p_attempted'] = round((len(contPuzzlesUser[key_split[1]]) * 100)/((len(intermediatePuzzles) + len(advancedPuzzles))-1), 3)
+            
+            # Replace NaN values by 0
+            competency_ELO_PCA['accuracy'] = competency_ELO_PCA['accuracy'].replace(np.nan, 0)
+            # Data preprocesing to match variable weights
+            scaler = StandardScaler()
+            scaler.fit(competency_ELO_PCA)
+            scaled_data = scaler.transform(competency_ELO_PCA)
+            
+            # PCA object and look for the main variables
+            pca = PCA(n_components=1)
+            pca.fit(scaled_data)
+            # Dimensionality reduction
+            x_pca = pca.transform(scaled_data)
+            
+            # Re-enter the NaN values
+            x_pca = np.round(np.where(x_pca == min(x_pca), np.nan, x_pca),3)
+            
+            # Normalized
+            x_pca_normalized = np.round(normalized_PCA(x_pca),3)
+            
+            #data output preparation  
+            difficulty_ELO = pd.DataFrame(difficulty_ELO, columns = ['task_id','kc', 'difficulty','normalized_difficulty'])
+            competency_ELO = pd.DataFrame(competency_ELO, columns = ['group','user','kc', 'competency', 'accuracy','n_puzzles_attempted','p_attempted'])
+            
+
+            competency_ELO['pca'] = x_pca.astype(str)
+            competency_ELO['pca_normalized'] = x_pca_normalized.astype(str)
+            
+            
+            return competency_ELO, difficulty_ELO
+
 
 
 
